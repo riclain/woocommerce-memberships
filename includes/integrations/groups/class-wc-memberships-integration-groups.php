@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Integration class for Groups plugin
@@ -42,16 +42,16 @@ class WC_Memberships_Integration_Groups {
 		add_filter( 'wc_memberships_general_settings', array( $this, 'groups_integration_settings' ) );
 		add_action( 'woocommerce_admin_field_wc_memberships_groups_import_button', array( $this, 'admin_wc_memberships_groups_button' ) );
 
-		// Register the Import page
+		// register the Import page
 		add_action( 'admin_menu', array( $this, 'add_menu_items' ) );
 
-		// Customize admin title for the import page
+		// customize admin title for the import page
 		add_filter( 'admin_title', array( $this, 'admin_title' ) );
 
-		// Handle groups import
+		// handle groups import
 		add_action( 'init', array( $this, 'import_groups' ), 11 ); // Lower priority, so that CPTs are registered!
 
-		// Remove over-zealous groups restriction select box
+		// remove over-zealous groups restriction select box
 		add_action( 'admin_init', array( $this, 'remove_groups_access_restriction' ), 11 );
 	}
 
@@ -72,15 +72,15 @@ class WC_Memberships_Integration_Groups {
 		);
 
 		$settings[] = array(
-			'id'       => 'import_groups',
+			'id'                => 'import_groups',
 			'custom_attributes' => array(
 				'href'   => admin_url( 'admin.php?page=wc-memberships-import-groups' ),
 			),
-			'type'     => 'wc_memberships_groups_import_button',
-			'title'    => __( 'Groups Import', 'woocommerce-memberships' ),
-			'class'    => 'button import-groups',
-			'desc_tip' => __( 'Click this button to import memberships from WordPress Groups plugin.', 'woocommerce-memberships' ),
-			'default'  => __( 'Import Members from Groups', 'woocommerce-memberships' )
+			'type'              => 'wc_memberships_groups_import_button',
+			'title'             => __( 'Groups Import', 'woocommerce-memberships' ),
+			'class'             => 'button import-groups',
+			'desc_tip'          => __( 'Click this button to import memberships from WordPress Groups plugin.', 'woocommerce-memberships' ),
+			'default'           => __( 'Import Members from Groups', 'woocommerce-memberships' ),
 		);
 
 		$settings[] = array(
@@ -100,10 +100,10 @@ class WC_Memberships_Integration_Groups {
 	public function add_menu_items() {
 		global $_registered_pages;
 
-		// Register Import Groups page
+		// register Import Groups page
 		if ( current_user_can( 'manage_woocommerce' ) ) {
 
-			// Modifies the `$_registered_pages` global directly
+			// modifies the `$_registered_pages` global directly
 			$hookname = get_plugin_page_hookname( 'wc-memberships-import-groups', null );
 
 			add_action( $hookname, array( $this, 'render_import_page' ) );
@@ -121,7 +121,7 @@ class WC_Memberships_Integration_Groups {
 	 */
 	public function admin_title( $title ) {
 
-		if ( isset( $_GET['page'] ) && 'wc-memberships-import-groups' == $_GET['page'] ) {
+		if ( isset( $_GET['page'] ) && 'wc-memberships-import-groups' === $_GET['page'] ) {
 			$title = _x( 'Import members from Groups', 'Page title', 'woocommerce-memberships' ) . $title;
 		}
 
@@ -161,7 +161,7 @@ class WC_Memberships_Integration_Groups {
 
 					<fieldset>
 						<h4><?php printf( /* translators: %s - Group name, %d - Group ID */
-								__( "Group: %s (ID #%d) " ), $group->name, $group->group_id ); ?></h4>
+								__( 'Group: %s (ID #%d) ', 'woocommerce-memberships' ), $group->name, $group->group_id ); ?></h4>
 
 						<p>
 							<legend><?php esc_html_e( 'What should be done with members of this group?', 'woocommerce-memberships' ) ?></legend>
@@ -219,16 +219,16 @@ class WC_Memberships_Integration_Groups {
 		</form>
 		<?php
 
-		wc_enqueue_js("
+		wc_enqueue_js( "
 			var groups_count = " . count( $this->get_groups() ) . ";
-			jQuery('#import_groups').on('change', 'input.js-import-action', function() {
-				var checked_count = jQuery('#import_groups').find('input.js-import-action:checked').length;
+			jQuery('#import_groups').on( 'change', 'input.js-import-action', function() {
+				var checked_count = jQuery( '#import_groups' ).find( 'input.js-import-action:checked' ).length;
 
 				if ( checked_count >= groups_count ) {
-					jQuery('#submit').removeAttr('disabled');
+					jQuery( '#submit' ).removeAttr( 'disabled' );
 				}
-			});
-		");
+			} );
+		" );
 	}
 
 
@@ -240,7 +240,7 @@ class WC_Memberships_Integration_Groups {
 	public function remove_groups_access_restriction() {
 		global $typenow;
 
-		if ( in_array( $typenow, array( 'wc_user_membership', 'wc_membership_plan' ) ) ) {
+		if ( in_array( $typenow, array( 'wc_user_membership', 'wc_membership_plan' ), true ) ) {
 			remove_action( 'restrict_manage_posts', array( 'Groups_Admin_Posts', 'restrict_manage_posts' ) );
 		}
 	}
@@ -254,14 +254,14 @@ class WC_Memberships_Integration_Groups {
 	 */
 	public function import_groups() {
 
-		// Bail out if not importing
-		if ( ! isset( $_POST['action'] ) || $_POST['action'] != 'wc_memberships_import_groups' ) {
+		// bail out if not importing
+		if ( ! isset( $_POST['action'] ) || $_POST['action'] !== 'wc_memberships_import_groups' ) {
 			return;
 		}
 
 		$redirect_to = admin_url( 'edit.php?post_type=wc_user_membership' );
 
-		// Bail out if nothing to import
+		// bail out if nothing to import
 		if ( ! isset( $_POST['import_groups'] ) || empty( $_POST['import_groups'] ) ) {
 
 			wp_redirect( $redirect_to );
@@ -270,22 +270,22 @@ class WC_Memberships_Integration_Groups {
 
 		$import_count = 0;
 
-		// Loop over groups and import members
+		// loop over groups and import members
 		foreach ( $_POST['import_groups'] as $group_id => $map ) {
 
-			// Skip skipped groups
-			if ( 'skip' == $map['action'] ) {
+			// skip skipped groups
+			if ( 'skip' === $map['action'] ) {
 				continue;
 			}
 
 			$members = $this->get_group_members( $group_id );
 
-			// Skip if no members to import
+			// skip if no members to import
 			if ( empty( $members ) ) {
 				continue;
 			}
 
-			// Loop over each member and import
+			// loop over each member and import
 			foreach ( $members as $user_id ) {
 				$result = $this->import_user_membership( $user_id, $group_id, $map['plan'] );
 
@@ -295,16 +295,16 @@ class WC_Memberships_Integration_Groups {
 			}
 		}
 
-		// Add admin message
+		// add admin message
 		if ( $import_count ) {
 			$message = sprintf( _n( '%d member imported from Groups.', '%d members imported from Groups', $import_count, 'woocommerce-memberships' ), $import_count );
 		} else {
 			$message = __( 'No members were imported from Groups.', 'woocommerce-memberships' );
 		}
 
-		wc_memberships()->admin->message_handler->add_message( $message );
+		wc_memberships()->get_admin_instance()->get_message_handler()->add_message( $message );
 
-		// Redirect to members screen
+		// redirect to members screen
 		wp_redirect( $redirect_to );
 		exit;
 	}
@@ -321,7 +321,7 @@ class WC_Memberships_Integration_Groups {
 	 */
 	private function import_user_membership( $user_id, $group_id, $plan_id ) {
 
-		// User is already a member, skip
+		// user is already a member, skip
 		if ( wc_memberships_is_user_member( $user_id, $plan_id ) ) {
 			return false;
 		}
@@ -343,21 +343,21 @@ class WC_Memberships_Integration_Groups {
 			'group_id' => $group_id,
 		) );
 
-		// Create a new membership
+		// create a new membership
 		$user_membership_id = wp_insert_post( $data );
 
-		// Bail out on failure
+		// bail out on failure
 		if ( is_wp_error( $user_membership_id ) ) {
 			return false;
 		}
 
-		// Save group ID that granted access
+		// save group ID that granted access
 		update_post_meta( $user_membership_id, '_group_id', $group_id );
 
-		// Save the membership start date
+		// save the membership start date
 		update_post_meta( $user_membership_id, '_start_date', current_time( 'mysql', true ) );
 
-		// Calculate membership end date based on membership length
+		// calculate membership end date based on membership length
 		$plan     = wc_memberships_get_membership_plan( $plan_id );
 		$end_date = '';
 
@@ -366,7 +366,7 @@ class WC_Memberships_Integration_Groups {
 			$now = current_time( 'timestamp', true );
 
 			if ( strpos( $plan->get_access_length_period(), 'month' ) !== false ) {
-				$end = wc_memberships()->add_months( $now, $plan->get_access_length_amount() );
+				$end = wc_memberships_add_months_to_timestamp( $now, $plan->get_access_length_amount() );
 			} else {
 				$end = strtotime( '+ ' . $plan->get_access_length(), $now );
 			}
@@ -374,11 +374,11 @@ class WC_Memberships_Integration_Groups {
 			$end_date = date( 'Y-m-d H:i:s', $end );
 		}
 
-		// Save/update end date
+		// save/update end date
 		$user_membership = wc_memberships_get_user_membership( $user_membership_id );
 		$user_membership->set_end_date( $end_date );
 
-		// Add membership note
+		// add membership note
 		$group = Groups_Group::read( $group_id );
 		/* translators: %s - Group name, %d Group ID */
 		$user_membership->add_note( sprintf( __( 'Membership imported from Group "%s" (ID #%d)' ), $group->name, $group_id ) );
@@ -395,7 +395,7 @@ class WC_Memberships_Integration_Groups {
 	 */
 	public function admin_wc_memberships_groups_button( $value ) {
 
-		// Custom attribute handling
+		// custom attribute handling
 		$custom_attributes = array();
 
 		if ( ! empty( $value['custom_attributes'] ) && is_array( $value['custom_attributes'] ) ) {
@@ -404,7 +404,7 @@ class WC_Memberships_Integration_Groups {
 			}
 		}
 
-		// Description handling
+		// description handling
 		$field_description = WC_Admin_Settings::get_field_description( $value );
 
 		?>
@@ -469,6 +469,5 @@ class WC_Memberships_Integration_Groups {
 		return (array) $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM $table WHERE group_id=%d", $group_id ) );
 	}
 
-}
 
-new WC_Memberships_Integration_Groups();
+}

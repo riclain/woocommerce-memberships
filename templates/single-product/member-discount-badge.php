@@ -22,10 +22,13 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Single Product Member Discount Badge
+ *
+ * @type \WP_Post $post Post object
+ * @type \WC_Product $product Product object
  *
  * @version 1.0.0
  * @since 1.0.0

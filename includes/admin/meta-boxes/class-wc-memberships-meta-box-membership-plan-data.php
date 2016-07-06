@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Membership Plan Data Meta Box
@@ -114,11 +114,11 @@ class WC_Memberships_Meta_Box_Membership_Plan_Data extends WC_Memberships_Meta_B
 		// We need to prefix post_type/taxonomy names (values), so that
 		// if a post type and taxonomy share a name, we can still distinguish
 		// between them
-		foreach ( wc_memberships()->admin->get_valid_post_types_for_content_restriction() as $post_type_name => $post_type ) {
+		foreach ( wc_memberships()->get_admin_instance()->get_valid_post_types_for_content_restriction() as $post_type_name => $post_type ) {
 			$content_restriction_content_type_options['post_types'][ 'post_type|' . $post_type_name ] = $post_type;
 		}
 
-		foreach ( wc_memberships()->admin->get_valid_taxonomies_for_content_restriction() as $taxonomy_name => $taxonomy ) {
+		foreach ( wc_memberships()->get_admin_instance()->get_valid_taxonomies_for_content_restriction() as $taxonomy_name => $taxonomy ) {
 			$content_restriction_content_type_options['taxonomies'][ 'taxonomy|' . $taxonomy_name ] = $taxonomy;
 		}
 
@@ -134,12 +134,18 @@ class WC_Memberships_Meta_Box_Membership_Plan_Data extends WC_Memberships_Meta_B
 			'specific'  => __( 'specify a time', 'woocommerce-memberships' ),
 		);
 
-		$period_options = array(
+		/**
+		 * Filter the possible access period options of a Membership Plan
+		 * 
+		 * @since 1.6.1
+		 * @param array $period_options Associative array of periods 
+		 */
+		$period_options = apply_filters( 'wc_memberships_plan_access_period_options', array(
 			'days'   => __( 'day(s)', 'woocommerce-memberships' ),
 			'weeks'  => __( 'week(s)', 'woocommerce-memberships' ),
 			'months' => __( 'month(s)', 'woocommerce-memberships' ),
 			'years'  => __( 'year(s)', 'woocommerce-memberships' ),
-		);
+		) );
 
 
 		// Get applied content restriction rules
@@ -174,11 +180,11 @@ class WC_Memberships_Meta_Box_Membership_Plan_Data extends WC_Memberships_Meta_B
 			'purchase' => __( 'Purchase', 'woocommerce-memberships' ),
 		);
 
-		foreach ( wc_memberships()->admin->get_valid_taxonomies_for_product_restriction() as $taxonomy_name => $taxonomy ) {
+		foreach ( wc_memberships()->get_admin_instance()->get_valid_taxonomies_for_product_restriction() as $taxonomy_name => $taxonomy ) {
 			$product_restriction_content_type_options['taxonomies'][ 'taxonomy|' . $taxonomy_name ] = $taxonomy;
 		}
 
-		foreach ( wc_memberships()->admin->get_valid_taxonomies_for_purchasing_discounts() as $taxonomy_name => $taxonomy ) {
+		foreach ( wc_memberships()->get_admin_instance()->get_valid_taxonomies_for_purchasing_discounts() as $taxonomy_name => $taxonomy ) {
 			$purchasing_discount_content_type_options['taxonomies'][ 'taxonomy|' . $taxonomy_name ] = $taxonomy;
 		}
 
@@ -321,7 +327,7 @@ class WC_Memberships_Meta_Box_Membership_Plan_Data extends WC_Memberships_Meta_B
 										}
 									}
 
-									echo esc_attr( wc_memberships()->wp_json_encode( $json_ids ) ); ?>"
+									echo esc_attr( wc_memberships_json_encode( $json_ids ) ); ?>"
 						       value="<?php echo esc_attr( implode( ',', array_keys( $json_ids ) ) ); ?>" />
 
 						<?php echo SV_WC_Plugin_Compatibility::wc_help_tip( __( 'Leave empty to only allow members you manually assign.', 'woocommerce-memberships' ) ); ?>
@@ -390,7 +396,7 @@ class WC_Memberships_Meta_Box_Membership_Plan_Data extends WC_Memberships_Meta_B
 					<?php require( wc_memberships()->get_plugin_path() . '/includes/admin/meta-boxes/views/html-content-restriction-rules.php' ); ?>
 				</div>
 
-				<?php if ( $public_posts = wc_memberships()->rules->get_public_posts() ) : ?>
+				<?php if ( $public_posts = wc_memberships()->get_rules_instance()->get_public_posts() ) : ?>
 					<p><?php printf( __( 'These posts are public, and will be excluded from all restriction rules: %s', 'woocommerce-memberships' ), wc_memberships()->admin_list_post_links( $public_posts ) ); ?></p>
 				<?php endif; ?>
 
@@ -411,7 +417,7 @@ class WC_Memberships_Meta_Box_Membership_Plan_Data extends WC_Memberships_Meta_B
 					<?php require( wc_memberships()->get_plugin_path() . '/includes/admin/meta-boxes/views/html-product-restriction-rules.php' ); ?>
 				</div>
 
-				<?php if ( $public_products = wc_memberships()->rules->get_public_products() ) : ?>
+				<?php if ( $public_products = wc_memberships()->get_rules_instance()->get_public_products() ) : ?>
 					<p><?php printf( __( 'These products are public, and will be excluded from all restriction rules: %s', 'woocommerce-memberships' ), wc_memberships()->admin_list_post_links( $public_products ) ); ?></p>
 				<?php endif; ?>
 
@@ -557,7 +563,7 @@ class WC_Memberships_Meta_Box_Membership_Plan_Data extends WC_Memberships_Meta_B
 		update_post_meta( $post_id, '_access_while_subscription_active', isset( $_POST['_access_while_subscription_active'] ) ? 'yes' : 'no' );
 
 		// Update restriction & discount rules
-		wc_memberships()->admin->update_rules( $post_id, array( 'content_restriction', 'product_restriction', 'purchasing_discount' ), 'plan' );
+		wc_memberships()->get_admin_instance()->update_rules( $post_id, array( 'content_restriction', 'product_restriction', 'purchasing_discount' ), 'plan' );
 	}
 
 

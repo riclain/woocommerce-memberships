@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * View for a content restriction rule
@@ -32,6 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @version 1.0.0
  */
 ?>
+
 <tbody class="rule content-restriction-rule content-restriction-rule-<?php echo esc_attr( $index ); ?> <?php if ( ! $rule->current_user_can_edit() || ! $rule->current_context_allows_editing() ) : ?>disabled<?php endif; ?>">
 
 	<tr>
@@ -118,7 +119,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 									}
 								}
 
-						        echo esc_attr( wc_memberships()->wp_json_encode( $json_ids ) ); ?>"
+						        echo esc_attr( wc_memberships_json_encode( $json_ids ) ); ?>"
 					       value="<?php echo esc_attr( implode( ',', array_keys( $json_ids ) ) ); ?>"
 					       <?php if ( ! $rule->current_user_can_edit() ) : ?>disabled<?php endif; ?> />
 

@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Memberships Data Meta Box for all supported post types
@@ -44,7 +44,7 @@ class WC_Memberships_Meta_Box_Post_Memberships_Data extends WC_Memberships_Meta_
 	 */
 	public function __construct() {
 
-		$this->screens = array_keys( wc_memberships()->admin->get_valid_post_types_for_content_restriction() );
+		$this->screens = array_keys( wc_memberships()->get_admin_instance()->get_valid_post_types_for_content_restriction() );
 
 		parent::__construct();
 	}
@@ -103,7 +103,7 @@ class WC_Memberships_Meta_Box_Post_Memberships_Data extends WC_Memberships_Meta_
 		);
 
 		// Get applied restriction rules
-		$content_restriction_rules = wc_memberships()->rules->get_rules( array(
+		$content_restriction_rules = wc_memberships()->get_rules_instance()->get_rules( array(
 			'rule_type'         => 'content_restriction',
 			'object_id'         => $post->ID,
 			'content_type'      => 'post_type',
@@ -182,13 +182,15 @@ class WC_Memberships_Meta_Box_Post_Memberships_Data extends WC_Memberships_Meta_
 	 *
 	 * @since 1.0.0
 	 * @param int $post_id
-	 * @param WP_Post $post
+	 * @param \WP_Post $post
 	 */
 	public function update_data( $post_id, WP_Post $post ) {
 
-		// Update restriction rules
-		wc_memberships()->admin->update_rules( $post_id, array( 'content_restriction' ), 'post' );
-		wc_memberships()->admin->update_custom_message( $post_id, array( 'content_restricted' ) );
+		$admin = wc_memberships()->get_admin_instance();
+
+		// update restriction rules
+		$admin->update_rules( $post_id, array( 'content_restriction' ), 'post' );
+		$admin->update_custom_message( $post_id, array( 'content_restricted' ) );
 
 		update_post_meta( $post_id, '_wc_memberships_force_public', isset( $_POST[ '_wc_memberships_force_public' ] ) ? 'yes' : 'no' );
 	}

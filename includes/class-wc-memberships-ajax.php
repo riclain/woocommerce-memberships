@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * AJAX class
@@ -39,7 +39,7 @@ class WC_Memberships_AJAX {
 	 */
 	public function __construct() {
 
-		// Admin
+		// admin only hooks
 		add_action( 'wp_ajax_wc_memberships_get_membership_expiration_date',  array( $this, 'get_membership_expiration_date' ) );
 		add_action( 'wp_ajax_wc_memberships_json_search_posts',               array( $this, 'json_search_posts' ) );
 		add_action( 'wp_ajax_wc_memberships_json_search_terms',               array( $this, 'json_search_terms' ) );
@@ -47,7 +47,7 @@ class WC_Memberships_AJAX {
 		add_action( 'wp_ajax_wc_memberships_delete_user_membership_note',     array( $this, 'delete_user_membership_note' ) );
 		add_action( 'wp_ajax_wc_memberships_transfer_user_membership',        array( $this, 'transfer_user_membership' ) );
 
-		// Filter out grouped products from JSON search results
+		// filter out grouped products from WC JSON search results
 		add_filter( 'woocommerce_json_search_found_products', array( $this, 'filter_json_search_found_products' ) );
 	}
 
@@ -63,18 +63,17 @@ class WC_Memberships_AJAX {
 
 		if ( isset( $_POST['plan'] ) && isset( $_POST['start_date'] ) ) {
 
-			$plan_id = intval( $_POST['plan'] );
+			$plan_id = (int) $_POST['plan'];
 			$plan    = wc_memberships_get_membership_plan( $plan_id );
 
 			if ( $plan ) {
 
 				$start_date     = strtotime( $_POST['start_date'] );
-				$start_date_utc = wc_memberships()->adjust_date_by_timezone( $start_date );
+				$start_date_utc = wc_memberships_adjust_date_by_timezone( $start_date );
 				$end_date       = $plan->get_expiration_date( $start_date_utc );
 
 				wp_send_json_success( $end_date );
 			}
-
 		}
 
 		die();
@@ -125,7 +124,7 @@ class WC_Memberships_AJAX {
 
 		if ( $posts ) {
 			foreach ( $posts as $post ) {
-				// TODO $post is an illegal array key type (WP_Post object)
+				// TODO $post is an illegal array key type (\WP_Post object vs int, string) and should be avoided {FN 2016-04-26}
 				$found_posts[ $post ] = get_the_title( $post );
 			}
 		}
@@ -264,7 +263,7 @@ class WC_Memberships_AJAX {
 	public function filter_json_search_found_products( $products ) {
 
 		// Remove grouped products
-		if ( isset( $_REQUEST['screen'] ) && 'wc_membership_plan' == $_REQUEST['screen'] ) {
+		if ( isset( $_REQUEST['screen'] ) && 'wc_membership_plan' === $_REQUEST['screen'] ) {
 			foreach( $products as $id => $title ) {
 
 				$product = wc_get_product( $id );
@@ -289,50 +288,23 @@ class WC_Memberships_AJAX {
 	 */
 	public function transfer_user_membership() {
 
-		if ( isset( $_POST['prev_user'] ) && isset( $_POST['new_user'] ) && isset( $_POST['membership'] ) ) {
+		if ( ! empty( $_POST['prev_user'] ) && ! empty( $_POST['new_user'] ) && ! empty( $_POST['membership'] ) ) {
 
-			$prev_user     = intval( $_POST['prev_user'] );
-			$new_user      = intval( $_POST['new_user'] );
-			$membership_id = intval( $_POST['membership'] );
-			$membership    = wc_memberships_get_user_membership( $membership_id );
+			$prev_user          = (int) $_POST['prev_user'];
+			$new_user           = (int) $_POST['new_user'];
+			$user_membership_id = (int) $_POST['membership'];
+			$user_membership    = wc_memberships_get_user_membership( $user_membership_id );
 
-			if ( $membership && $membership->user_id == $prev_user ) {
+			if ( $user_membership
+			     && $prev_user !== $new_user
+			     && (int) $user_membership->get_user_id() === $prev_user ) {
 
-				if ( get_user_by( 'id', $new_user ) ) {
+				$transferred = $user_membership->transfer_ownership( $new_user );
 
-					global $wpdb;
-
-					$update = $wpdb->update( $wpdb->prefix . 'posts', array( 'post_author' =>  $new_user, ), array( 'id' => $membership_id, 'post_author' => $prev_user ),  array( '%d' ), array( '%d', '%d' ) );
-
-					if ( false !== $update ) {
-
-						$owners     = get_post_meta( $membership_id, '_previous_owners', true );
-						$last_owner = array( current_time( 'timestamp', true ) => $prev_user );
-
-						if ( ! empty( $owners ) && is_array( $owners ) ) {
-							$owners = array_merge( $owners, $last_owner );
-						} else {
-							$owners = $last_owner;
-						}
-
-						// Store ownership history in a post meta
-						update_post_meta( $membership_id, '_previous_owners', $owners );
-
-						// Attach a membership note
-						$membership->add_note(
-							/* translators: Membership transferred from user A to user B */
-							sprintf( __( 'Membership transferred from %1$s to %2$s.', 'woocommerce-memberships' ),
-								get_user_by( 'id', $prev_user )->user_nicename,
-								get_user_by( 'id', $new_user )->user_nicename
-							)
-						);
-
-						wp_send_json_success( $owners );
-					}
+				if ( true === $transferred ) {
+					wp_send_json_success( $user_membership->get_previous_owners() );
 				}
-
 			}
-
 		}
 
 		die();

@@ -22,13 +22,12 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Memberships shortcodes
  *
- * This class is responsible for adding and handling shortcodes
- * for Memberships
+ * This class is responsible for adding and handling shortcodes for Memberships
  *
  * @since 1.0.0
  */
@@ -119,7 +118,7 @@ class WC_Memberships_Shortcodes {
 
 		ob_start();
 
-		if ( ! in_array( true, $active_member ) ) {
+		if ( ! in_array( true, $active_member, true ) ) {
 			echo do_shortcode( $content );
 		}
 
@@ -155,38 +154,38 @@ class WC_Memberships_Shortcodes {
 		$output = '';
 
 		// Special handling for products
-		if ( in_array( get_post_type( $post_id ), array( 'product', 'product_variation' ) ) ) {
+		if ( in_array( get_post_type( $post_id ), array( 'product', 'product_variation' ), true ) ) {
 
-			if ( 'yes' == get_option( 'wc_memberships_show_excerpts' ) ) {
+			if ( 'yes' === get_option( 'wc_memberships_show_excerpts' ) ) {
 				$output = apply_filters( 'woocommerce_short_description', $post->post_excerpt );
 			}
 
 			// Check if user has access to viewing restricted content
 			if ( ! current_user_can( 'wc_memberships_view_restricted_product', $post->ID ) ) {
-				$output .= '<div class="wc-memberships-content-restricted-message">' . wc_memberships()->frontend->get_product_viewing_restricted_message( $post->ID ) . '</div>';
+				$output .= '<div class="wc-memberships-content-restricted-message">' . wc_memberships()->get_frontend_instance()->get_product_viewing_restricted_message( $post->ID ) . '</div>';
 			}
 
 			// Check if user has access to delayed content
 			else if ( ! current_user_can( 'wc_memberships_view_delayed_post_content', $post->ID ) ) {
-				$output .= '<div class="wc-memberships-content-delayed-message">' . wc_memberships()->frontend->get_content_delayed_message( get_current_user_id(), $post->ID, 'view' ) . '</div>';
+				$output .= '<div class="wc-memberships-content-delayed-message">' . wc_memberships()->get_frontend_instance()->get_content_delayed_message( get_current_user_id(), $post->ID, 'view' ) . '</div>';
 			}
 
 		// All other content
 		} else {
 
-			if ( 'yes' == get_option( 'wc_memberships_show_excerpts' ) ) {
+			if ( 'yes' === get_option( 'wc_memberships_show_excerpts' ) ) {
 				$output = apply_filters( 'get_the_excerpt', $post->post_excerpt );
 			}
 
 			// Check if user has access to restricted content
 			if ( ! current_user_can( 'wc_memberships_view_restricted_post_content', $post->ID ) ) {
 
-				$output .= '<div class="wc-memberships-content-restricted-message">' . wc_memberships()->frontend->get_content_restricted_message( $post->ID ) . '</div>';
+				$output .= '<div class="wc-memberships-content-restricted-message">' . wc_memberships()->get_frontend_instance()->get_content_restricted_message( $post->ID ) . '</div>';
 
 			// Check if user has access to delayed content
 			} elseif ( ! current_user_can( 'wc_memberships_view_delayed_post_content', $post->ID ) ) {
 
-				$output .= '<div class="wc-memberships-content-delayed-message">' . wc_memberships()->frontend->get_content_delayed_message( get_current_user_id(), $post->ID ) . '</div>';
+				$output .= '<div class="wc-memberships-content-delayed-message">' . wc_memberships()->get_frontend_instance()->get_content_delayed_message( get_current_user_id(), $post->ID ) . '</div>';
 
 			}
 		}

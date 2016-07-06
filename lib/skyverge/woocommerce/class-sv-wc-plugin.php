@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 if ( ! class_exists( 'SV_WC_Plugin' ) ) :
 
@@ -34,13 +34,13 @@ if ( ! class_exists( 'SV_WC_Plugin' ) ) :
  * plugin.  This class handles all the "non-feature" support tasks such
  * as verifying dependencies are met, loading the text domain, etc.
  *
- * @version 4.2.0
+ * @version 4.4.0
  */
 abstract class SV_WC_Plugin {
 
 
 	/** Plugin Framework Version */
-	const VERSION = '4.2.0';
+	const VERSION = '4.4.0';
 
 	/** @var object single instance of plugin */
 	protected static $instance;
@@ -68,6 +68,9 @@ abstract class SV_WC_Plugin {
 
 	/** @var array string names of required PHP functions */
 	private $function_dependencies = array();
+
+	/** @var string the plugin text domain */
+	private $text_domain;
 
 	/** @var SV_WC_Admin_Notice_Handler the admin notice handler class */
 	private $admin_notice_handler;
@@ -98,11 +101,17 @@ abstract class SV_WC_Plugin {
 
 		if ( isset( $args['function_dependencies'] ) )       $this->function_dependencies = $args['function_dependencies'];
 
+		if ( isset( $args['text_domain'] ) ) {
+			$this->text_domain = $args['text_domain'];
+		}
+
 		// include library files after woocommerce is loaded
 		add_action( 'sv_wc_framework_plugins_loaded', array( $this, 'lib_includes' ) );
 
 		// includes that are required to be available at all times
 		$this->includes();
+
+		$this->load_hook_deprecator();
 
 		// Admin
 		if ( is_admin() && ! is_ajax() ) {
@@ -161,11 +170,30 @@ abstract class SV_WC_Plugin {
 	 */
 	public function load_translations() {
 
-		// Load framework text domain
-		load_plugin_textdomain( 'woocommerce-plugin-framework', false, dirname( plugin_basename( $this->get_framework_file() ) ) . '/i18n/languages' );
+		// load the framework translation files
+		$framework_domain = 'woocommerce-plugin-framework';
+		$framework_locale = apply_filters( 'plugin_locale', get_locale(), $framework_domain );
 
-		// Load plugin text domain
-		$this->load_translation();
+		load_textdomain( $framework_domain, WP_LANG_DIR . '/' . $framework_domain . '/' . $framework_domain . '-' . $framework_locale . '.mo' );
+
+		load_plugin_textdomain( $framework_domain, false, dirname( plugin_basename( $this->get_framework_file() ) ) . '/i18n/languages' );
+
+		// if this plugin passes along its text domain, load its translation files
+		if ( $this->text_domain ) {
+
+			$domain = $this->text_domain;
+			$locale = apply_filters( 'plugin_locale', get_locale(), $this->text_domain );
+
+			load_textdomain( $domain, WP_LANG_DIR . '/' . $domain . '/' . $domain . '-' . $locale . '.mo' );
+
+			load_plugin_textdomain( $domain, false, dirname( plugin_basename( $this->get_file() ) ) . '/i18n/languages' );
+
+		// otherwise, let it do the work
+		} else {
+
+			// load plugin text domain
+			$this->load_translation();
+		}
 	}
 
 
@@ -219,6 +247,48 @@ abstract class SV_WC_Plugin {
 		require_once( $framework_path . '/api/class-sv-wc-api-base.php' );
 		require_once( $framework_path . '/api/interface-sv-wc-api-request.php' );
 		require_once( $framework_path . '/api/interface-sv-wc-api-response.php' );
+
+		// XML API base
+		require_once( $framework_path . '/api/abstract-sv-wc-api-xml-request.php' );
+		require_once( $framework_path . '/api/abstract-sv-wc-api-xml-response.php' );
+
+		// JSON API base
+		require_once( $framework_path . '/api/abstract-sv-wc-api-json-request.php' );
+		require_once( $framework_path . '/api/abstract-sv-wc-api-json-response.php' );
+	}
+
+
+	/**
+	 * Load and instantiate the hook deprecator class
+	 *
+	 * @since 4.3.0
+	 */
+	private function load_hook_deprecator() {
+
+		require_once( $this->get_framework_path() . '/class-sv-wc-hook-deprecator.php' );
+
+		$this->hook_deprecator = new SV_WC_Hook_Deprecator( $this->get_plugin_name(), $this->get_deprecated_hooks() );
+	}
+
+
+	/**
+	 * Return deprecated/removed hooks. Implementing classes should override this
+	 * and return an array of deprecated/removed hooks in the following format:
+	 *
+	 * $old_hook_name = array {
+	 *   @type string $version version the hook was deprecated/removed in
+	 *   @type bool $removed if present and true, the message will indicate the hook was removed instead of deprecated
+	 *   @type string|bool $replacement if present and a string, the message will indicate the replacement hook to use,
+	 *     otherwise (if bool and false) the message will indicate there is no replacement available.
+	 * }
+	 *
+	 * @since 4.3.0
+	 * @return array
+	 */
+	protected function get_deprecated_hooks() {
+
+		// stub method
+		return array();
 	}
 
 
@@ -288,7 +358,9 @@ abstract class SV_WC_Plugin {
 				'<strong>' . implode( ', ', $missing_extensions ) . '</strong>'
 			);
 
-			$this->get_admin_notice_handler()->add_admin_notice( $message, 'missing-extensions' );
+			$this->get_admin_notice_handler()->add_admin_notice( $message, 'missing-extensions', array(
+				'notice_class' => 'error',
+			) );
 
 		}
 
@@ -309,7 +381,9 @@ abstract class SV_WC_Plugin {
 				'<strong>' . implode( ', ', $missing_functions ) . '</strong>'
 			);
 
-			$this->get_admin_notice_handler()->add_admin_notice( $message, 'missing-functions' );
+			$this->get_admin_notice_handler()->add_admin_notice( $message, 'missing-functions', array(
+				'notice_class' => 'error',
+			) );
 
 		}
 	}

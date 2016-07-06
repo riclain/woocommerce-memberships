@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Integration class for User Switching plugin
@@ -41,7 +41,7 @@ class WC_Memberships_Integration_User_Switching {
 
 		add_filter( 'post_row_actions', array( $this, 'customize_membership_plan_row_actions' ), 11, 2 );
 
-		// Custom admin actions
+		// custom admin actions
 		add_action( 'admin_action_view_as_member', array( $this, 'view_as_member' ) );
 
 		add_action( 'switch_back_user',  array( $this, 'remove_temp_user' ) );
@@ -58,18 +58,18 @@ class WC_Memberships_Integration_User_Switching {
 	 * Customize membership plan row actions
 	 *
 	 * @since 1.0.0
-	 * @param array $actions
-	 * @param WP_Post $post
+	 * @param array $actions Array of post actions
+	 * @param \WP_Post $post Post object
 	 * @return array
 	 */
 	public function customize_membership_plan_row_actions( $actions, WP_Post $post ) {
 		global $typenow;
 
-		if ( 'wc_membership_plan' != $typenow ) {
+		if ( 'wc_membership_plan' !== $typenow ) {
 			return $actions;
 		}
 
-		// Add view as member action
+		// add view as member action
 		$actions['view_as_member'] = '<a href="' . wp_nonce_url( admin_url( 'edit.php?post_type=wc_membership_plan&action=view_as_member&amp;post=' . $post->ID ), 'wc-memberships-view-as-member-of_' . $post->ID ) . '" title="' . __( 'View site as a member of this plan', 'woocommerce-memberships' ) . '" rel="permalink">' .
 		                             __( 'View site as member', 'woocommerce-memberships' ) .
 		                             '</a>';
@@ -89,20 +89,20 @@ class WC_Memberships_Integration_User_Switching {
 			return;
 		}
 
-		// Get the plan post ID
+		// get the plan post ID
 		$id = isset( $_REQUEST['post'] ) ? absint( $_REQUEST['post'] ) : '';
 
 		check_admin_referer( 'wc-memberships-view-as-member-of_' . $id );
 
 		$plan = wc_memberships_get_membership_plan( $id );
 
-		// Bail out if plan could not be determined
+		// bail out if plan could not be determined
 		if ( ! $id || ! $plan ) {
 			return;
 		}
 
-		// Create a temporary user
-		$username = uniqid('wcm_');
+		// create a temporary user
+		$username = uniqid( 'wcm_' );
 
 		/**
 		 * Filter temporary user data
@@ -113,17 +113,17 @@ class WC_Memberships_Integration_User_Switching {
 		 *
 		 * @since 1.0.0
 		 * @param array $data
-		 * @param WC_Memberships_Membership_Plan $plan
+		 * @param \WC_Memberships_Membership_Plan $plan
 		 */
 		$temp_user_data = apply_filters( 'wc_memberships_temporary_user_data', array(
 			'user_login'  => $username,
-			'user_pass'   => uniqid('wcmp_'),
+			'user_pass'   => uniqid( 'wcmp_' ),
 			'user_email'  => $username . '@.example.com',
 			/* translators: %s - Membership Plan name */
 			'first_name'  => sprintf( __( '%s Plan', 'woocommerce-memberships' ), $plan->get_name() ),
 			'last_name'   => __( 'Test User', 'woocommerce-memberships' ),
 			/* translators: %s - Membership Plan name */
-			'description' => sprintf( __( "A temporary user created for testing the %s membership plan. If you don't use it, feel free to delete this user." ), $plan->get_name() ),
+			'description' => sprintf( __( "A temporary user created for testing the %s membership plan. If you don't use it, feel free to delete this user.", 'woocommerce-memberships' ), $plan->get_name() ),
 			'role'        => 'customer',
 		), $plan );
 
@@ -133,11 +133,11 @@ class WC_Memberships_Integration_User_Switching {
 			return;
 		}
 
-		// Set a temporary value in DB indicating which temporary user has been created for the current user
+		// set a temporary value in DB indicating which temporary user has been created for the current user
 		set_transient( 'wc_memberships_user_' . get_current_user_id() . '_viewing_as', $user_id, YEAR_IN_SECONDS );
 		update_user_meta( $user_id, '_wc_memberships_temp_user', 1 );
 
-		// Create user membership
+		// create user membership
 		$membership_id = wp_insert_post( array(
 			'post_type'   => 'wc_user_membership',
 			'post_parent' => $plan->get_id(),
@@ -145,12 +145,12 @@ class WC_Memberships_Integration_User_Switching {
 			'post_status' => 'wcm-active'
 		) );
 
-		// Set membership start date to now
+		// set membership start date to now
 		update_post_meta( $membership_id, '_start_date', current_time( 'mysql', true ) );
 
 		$user = get_user_by( 'id', $user_id );
 
-		// Now switch to that user
+		// now switch to that user
 		$link = add_query_arg( array(
 			'action'   => 'switch_to_user',
 			'user_id'  => $user->ID,
@@ -172,17 +172,17 @@ class WC_Memberships_Integration_User_Switching {
 
 		$user_id = $user_id ? $user_id : get_current_user_id();
 
-		if ( ! $user_id || isset( $_REQUEST['action'] ) && 'switch_to_user' == $_REQUEST['action'] ) {
+		if ( ! $user_id || ( isset( $_REQUEST['action'] ) && 'switch_to_user' === $_REQUEST['action'] ) ) {
 			return;
 		}
 
 		$temp_user_id = get_transient( 'wc_memberships_user_' . $user_id . '_viewing_as' );
 
-		// Remove old, temporary user
+		// remove old, temporary user
 		if ( $temp_user_id ) {
 
 			if ( ! function_exists( 'wp_delete_user' ) ) {
-				include ( ABSPATH . "wp-admin/includes/user.php" );
+				include ABSPATH . 'wp-admin/includes/user.php';
 			}
 
 			wp_delete_user( $temp_user_id );
@@ -191,5 +191,3 @@ class WC_Memberships_Integration_User_Switching {
 
 
 }
-
-new WC_Memberships_Integration_User_Switching();

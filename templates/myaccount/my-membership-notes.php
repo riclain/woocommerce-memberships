@@ -22,17 +22,15 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Renders the product discounts available from the membership in the my account area.
  *
- * @param WC_Memberships_User_Membership $customer_membership User Membership object
- * @param WP_Comment_Query $customer_notes Query results of customer-facing notes for the membership
- * @param string $timezone the timezone abbreviation for the site's timezone
- * @param int $user_id The current user ID
+ * @type \WC_Memberships_User_Membership $customer_membership User Membership object
+ * @type \WP_Comment_Query $customer_notes Query results of customer-facing notes for the membership
+ * @type string $timezone the timezone abbreviation for the site's timezone
+ * @type int $user_id The current user ID
  *
  * @version 1.4.1
  * @since 1.4.0

@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * View for purchasing discount rules table
@@ -32,6 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @version 1.0.0
  */
 ?>
+
 <table class="widefat rules purchasing-discount-rules js-rules">
 
 	<thead>

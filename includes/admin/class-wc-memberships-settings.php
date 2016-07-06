@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 if ( ! class_exists( 'WC_Settings_Memberships' ) ) :
 
@@ -38,7 +38,7 @@ class WC_Settings_Memberships extends WC_Settings_Page {
 	/**
 	 * Setup settings class
 	 *
-	 * @since  1.0
+	 * @since 1.0.0
 	 */
 	public function __construct() {
 
@@ -55,6 +55,7 @@ class WC_Settings_Memberships extends WC_Settings_Page {
 	/**
 	 * Get sections
 	 *
+	 * @since 1.0.0
 	 * @return array
 	 */
 	public function get_sections() {
@@ -323,7 +324,7 @@ class WC_Settings_Memberships extends WC_Settings_Page {
 	/**
 	 * Output the settings
 	 *
-	 * @since 1.0
+	 * @since 1.0.0
 	 */
 	public function output() {
 		global $current_section;
@@ -335,6 +336,8 @@ class WC_Settings_Memberships extends WC_Settings_Page {
 
 	/**
 	 * Save settings
+	 *
+	 * @since 1.0.0
 	 */
 	public function save() {
 		global $current_section;
@@ -381,5 +384,3 @@ class WC_Settings_Memberships extends WC_Settings_Page {
 }
 
 endif;
-
-return new WC_Settings_Memberships();

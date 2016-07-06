@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Abstract Meta Box for Memberships
@@ -60,17 +60,17 @@ abstract class WC_Memberships_Meta_Box {
 	 */
 	public function __construct() {
 
-		// Add/Edit screen hooks
+		// add/edit screen hooks
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 
-		// Enqueue meta box scripts and styles, but only if the
-		// meta box has scripts or styles
+		// enqueue meta box scripts and styles,
+		// but only if the meta box has scripts or styles
 		if ( method_exists( $this, 'enqueue_scripts_and_styles' ) ) {
 			add_action( 'admin_enqueue_scripts', array( $this, 'maybe_enqueue_scripts_and_styles' ) );
 		}
 
-		// Update meta box data when saving post, but only if the
-		// meta box supports data updates
+		// update meta box data when saving post,
+		// but only if the meta box supports data updates
 		if ( method_exists( $this, 'update_data' ) ) {
 			add_action( 'save_post', array( $this, 'save_post' ), 10, 2 );
 		}
@@ -83,7 +83,7 @@ abstract class WC_Memberships_Meta_Box {
 	 * @since 1.0.0
 	 * @return string
 	 */
-	abstract function get_title();
+	abstract public function get_title();
 
 
 	/**
@@ -139,7 +139,7 @@ abstract class WC_Memberships_Meta_Box {
 
 		$screen = get_current_screen();
 
-		if ( ! in_array( $screen->id, $this->screens ) ) {
+		if ( ! in_array( $screen->id, $this->screens, true ) ) {
 			return;
 		}
 
@@ -155,7 +155,7 @@ abstract class WC_Memberships_Meta_Box {
 	 * @since 1.0.0
 	 */
 	public function enqueue_scripts_and_styles() {
-		// No-op, implement in subclass
+		// no-op, implement in subclass
 	}
 
 
@@ -165,10 +165,16 @@ abstract class WC_Memberships_Meta_Box {
 	 * @since 1.0.0
 	 */
 	public function add_meta_box() {
+		global $post;
+
+		// sanity check
+		if ( ! $post instanceof WP_Post ) {
+			return;
+		}
 
 		$screen = get_current_screen();
 
-		if ( ! in_array( $screen->id, $this->screens ) ) {
+		if ( ! in_array( $screen->id, $this->screens, true ) ) {
 			return;
 		}
 
@@ -210,12 +216,12 @@ abstract class WC_Memberships_Meta_Box {
 	public function do_output() {
 		global $post;
 
-		// Add a nonce field
+		// add a nonce field
 		if ( method_exists( $this, 'update_data' ) ) {
 			wp_nonce_field( $this->get_nonce_action(), $this->get_nonce_name() );
 		}
 
-		// Output implementation-specific HTML
+		// output implementation-specific HTML
 		$this->output( $post );
 	}
 
@@ -223,10 +229,10 @@ abstract class WC_Memberships_Meta_Box {
 	/**
 	 * Output meta box contents
 	 *
-	 * @param WP_Post $post
+	 * @param \WP_Post $post
 	 * @since 1.0.0
 	 */
-	abstract function output( WP_Post $post );
+	abstract public function output( WP_Post $post );
 
 
 	/**
@@ -234,27 +240,27 @@ abstract class WC_Memberships_Meta_Box {
 	 *
 	 * @since 1.0.0
 	 * @param int $post_id
-	 * @param WP_Post $post
+	 * @param \WP_Post $post
 	 */
 	public function save_post( $post_id, WP_Post $post ) {
 
-		// Check nonce
+		// check nonce
 		if ( ! isset( $_POST[ $this->get_nonce_name() ] ) || ! wp_verify_nonce( $_POST[ $this->get_nonce_name() ], $this->get_nonce_action() ) ) {
 			return;
 		}
 
-		// If this is an autosave, our form has not been submitted, so we don't want to do anything.
+		// if this is an autosave, our form has not been submitted, so we don't want to do anything.
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
 
-		// Bail out if not a supported post type
-		if ( ! in_array( $post->post_type, $this->screens ) ) {
+		// bail out if not a supported post type
+		if ( ! in_array( $post->post_type, $this->screens, true ) ) {
 			return;
 		}
 
-		// Check the user's permissions.
-		if ( isset( $_POST['post_type'] ) && 'page' == $_POST['post_type'] ) {
+		// check the user's permissions.
+		if ( isset( $_POST['post_type'] ) && 'page' === $_POST['post_type'] ) {
 
 			if ( ! current_user_can( 'edit_page', $post_id ) ) {
 				return;
@@ -265,14 +271,26 @@ abstract class WC_Memberships_Meta_Box {
 			if ( ! current_user_can( 'edit_post', $post_id ) ) {
 				return;
 			}
+
 		}
 
 		if ( ! current_user_can( 'manage_woocommerce_membership_plans' ) ) {
 			return;
 		}
 
-		// Implementation-specific meta box data update
+		// implementation-specific meta box data update
 		$this->update_data( $post_id, $post );
+
+		/**
+		 * Save meta box
+		 *
+		 * @since 1.5.3
+		 * @param array $_POST The Post data
+		 * @param string $meta_box_id The meta box id
+		 * @param int $post_id WP_Post id
+		 * @param \WP_Post $post WP_Post object
+		 */
+		do_action( 'wc_memberships_save_meta_box', $_POST, $this->id, $post_id, $post );
 	}
 
 

@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Checkout class, mainly handles forcing account creation or login when
@@ -121,6 +121,8 @@ class WC_Memberships_Checkout {
 	 * Mark the account fields as required
 	 *
 	 * @since 1.0.0
+	 * @param array $fields
+	 * @return array
 	 */
 	public function maybe_require_registration_fields( $fields ) {
 
@@ -184,7 +186,7 @@ class WC_Memberships_Checkout {
 		}
 
 		// Get membership plans
-		$membership_plans = wc_memberships()->plans->get_membership_plans();
+		$membership_plans = wc_memberships()->get_plans_instance()->get_membership_plans();
 
 		// Bail out if there are no membership plans
 		if ( empty( $membership_plans ) ) {

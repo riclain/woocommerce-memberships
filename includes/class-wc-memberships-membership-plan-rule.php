@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Membership Plan Rule class
@@ -72,7 +72,7 @@ class WC_Memberships_Membership_Plan_Rule {
 	 *
 	 * `$email = $rule->get_id()`
 	 *
-	 * TODO Refactor this and avoid using __call, makes harder to test or navigate code in IDEs
+	 * TODO refactor this and try avoid using __call, makes harder to test or navigate code in IDEs {FN 2016-04-26}
 	 *
 	 * @since 1.0.0
 	 * @param string $method called method
@@ -168,13 +168,12 @@ class WC_Memberships_Membership_Plan_Rule {
 	/**
 	 * Get rule access start time
 	 *
-	 * Returns the access start time this rule grants
-	 * for a piece of content, based on the input time.
+	 * Returns the access start time this rule grants or a piece of content,
+	 * based on the input time
 	 *
 	 * @since 1.0.0
-	 * @param string $from_time Timestamp for the time the access start
-	 *                               time should be calculated from
-	 * @return string Access start time as a timestamp
+	 * @param int $from_time Timestamp for the time the access start time should be calculated from
+	 * @return int Access start time as a timestamp
 	 */
 	public function get_access_start_time( $from_time ) {
 
@@ -183,7 +182,7 @@ class WC_Memberships_Membership_Plan_Rule {
 		if ( ! $this->grants_immediate_access() ) {
 
 			if ( strpos( $this->get_access_schedule(), 'month' ) !== false ) {
-				$access_time = wc_memberships()->add_months( $from_time, $this->get_access_schedule_amount() );
+				$access_time = wc_memberships_add_months_to_timestamp( $from_time, $this->get_access_schedule_amount() );
 			} else {
 				$access_time = strtotime( $this->get_access_schedule(), $from_time );
 			}
@@ -193,13 +192,13 @@ class WC_Memberships_Membership_Plan_Rule {
 		 * Filter rule access start time
 		 *
 		 * @since 1.0.0
-		 * @param string $access_time Access time, as a timestamp
-		 * @param string $from_time From time, as a timestamp
-		 * @param WC_Memberships_Membership_Plan_Rule $rule
+		 * @param int $access_time Access time, as a timestamp
+		 * @param int $from_time From time, as a timestamp
+		 * @param \WC_Memberships_Membership_Plan_Rule $rule The rule object
 		 */
 		$access_time = apply_filters( 'wc_memberships_rule_access_start_time', $access_time, $from_time, $this );
 
-		// Access always starts at midnight
+		// access always starts at midnight
 		return strtotime( 'midnight', $access_time );
 	}
 

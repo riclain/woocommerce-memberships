@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Admin Membership Plans class
@@ -180,7 +180,16 @@ class WC_Memberships_Admin_Membership_Plans {
 				break;
 
 				case 'members':
-					echo $membership_plan->get_memberships_count();
+
+					// TODO add an ajax/javascript control to break down counters and links to members by status {FN 2016-06-06}
+
+					$view_members = admin_url( "edit.php?post_type=wc_user_membership?s&post_type=wc_user_membership&action=-1&post_parent={$post_id}" );
+
+					printf( '%1$s' . $membership_plan->get_memberships_count() . '%2$s',
+						'<a href="' . esc_url( $view_members ) . '" title="' . esc_html__( 'View Members', 'woocommerce-memberships' ) . '">',
+						'</a>'
+					);
+
 				break;
 
 			}
@@ -283,11 +292,11 @@ class WC_Memberships_Admin_Membership_Plans {
 			 *
 			 * @since 1.0.0
 			 * @param int $new_id New plan ID
-			 * @param object $post Original plan object
+			 * @param \WP_Post $post Original plan object
 			 */
 			do_action( 'wc_memberships_duplicate_membership_plan', $new_id, $post );
 
-			wc_memberships()->admin->message_handler->add_message( __( 'Membership plan copied.', 'woocommerce-memberships' ) );
+			wc_memberships()->get_admin_instance()->get_message_handler()->add_message( __( 'Membership plan copied.', 'woocommerce-memberships' ) );
 
 			// Redirect to the edit screen for the new draft page
 			wp_redirect( admin_url( 'post.php?action=edit&post=' . $new_id ) );
@@ -407,7 +416,7 @@ class WC_Memberships_Admin_Membership_Plans {
 			$message = __( 'No customers were granted access from existing purchases.', 'woocommerce-memberships' );
 		}
 
-		wc_memberships()->admin->message_handler->add_message( $message );
+		wc_memberships()->get_admin_instance()->get_message_handler()->add_message( $message );
 
 		// Redirect back to the edit screen
 		wp_safe_redirect( $redirect_to ); exit;

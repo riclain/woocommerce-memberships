@@ -22,15 +22,13 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Renders a section on My Account page to list customer memberships
  *
- * @param \WC_Memberships_User_Membership[] $customer_memberships Array of user membership objects
- * @param int $user_id The current user ID
+ * @type \WC_Memberships_User_Membership[] $customer_memberships Array of user membership objects
+ * @type int $user_id The current user ID
  *
  * @version 1.5.0
  * @since 1.0.0

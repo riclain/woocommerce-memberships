@@ -1,10 +1,10 @@
 === WooCommerce Memberships ===
 Author: woothemes, skyverge
 Tags: woocommerce
-Requires at least: 4.0
-Tested up to: 4.4.1
-Requires WooCommerce at least: 2.3.6
-Tested WooCommerce up to: 2.5.0
+Requires at least: 4.1
+Tested up to: 4.5.2
+Requires WooCommerce at least: 2.4.13
+Tested WooCommerce up to: 2.6.0
 
 See http://docs.woothemes.com/document/woocommerce-memberships/ for full documentation.
 

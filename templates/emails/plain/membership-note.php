@@ -22,17 +22,20 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Membership note email
  *
+ * @type string $email_heading Email heading
+ * @type string $membership_note Membership note
+ * 
  * @since 1.0.0
  */
 
 echo $email_heading . "\n\n";
 
-echo __( "Hello, a note has just been added to your membership:", 'woocommerce-memberships' ) . "\n\n";
+echo esc_html__( 'Hello, a note has just been added to your membership:', 'woocommerce-memberships' ) . "\n\n";
 
 echo "----------\n\n";
 

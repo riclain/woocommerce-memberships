@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Membership Emails class
@@ -58,7 +58,7 @@ class WC_Memberships_Emails {
 	 */
 	public function memberships_emails( $emails ) {
 
-		$emails['wc_memberships_membership_note'] = require_once( wc_memberships()->get_plugin_path() . '/includes/class-wc-memberships-membership-note-email.php' );
+		$emails['wc_memberships_membership_note'] = wc_memberships()->load_class( '/includes/class-wc-memberships-membership-note-email.php', 'WC_Memberships_Membership_Note_Email' );
 
 		return $emails;
 	}

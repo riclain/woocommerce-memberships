@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Admin Membership Plans class
@@ -116,7 +116,7 @@ class WC_Memberships_Admin_User_Memberships {
 	 */
 	public function customize_sortable_columns( $columns ) {
 
-		$columns['name']         = 'name';
+		$columns['title']        = 'name';
 		$columns['email']        = 'email';
 		$columns['status']       = 'post_status';
 		$columns['member_since'] = 'start_date';
@@ -355,10 +355,10 @@ class WC_Memberships_Admin_User_Memberships {
 
 					$vars['meta_query'] = isset( $vars['meta_query'] ) ? $vars['meta_query'] : array();
 					$vars['meta_query'] = array_merge( $vars['meta_query'], array( array(
-						'key'   => '_end_date',
-						'value' => array( $min_date, $max_date ),
+						'key'     => '_end_date',
+						'value'   => array( $min_date, $max_date ),
 						'compare' => 'BETWEEN',
-						'type' => 'DATETIME',
+						'type'    => 'DATETIME',
 					) ) );
 				}
 
@@ -757,7 +757,7 @@ class WC_Memberships_Admin_User_Memberships {
 		// Prevent saving memberships with no plan
 		if ( ! $postarr['post_parent'] && isset( $_POST['post_ID'] ) ) {
 
-			wc_memberships()->admin->message_handler->add_error( __( 'Please select a membership plan.', 'woocommerce-memberships' ) );
+			wc_memberships()->get_admin_instance()->get_message_handler()->add_error( __( 'Please select a membership plan.', 'woocommerce-memberships' ) );
 			wp_redirect( wp_get_referer() ); exit;
 		}
 
@@ -782,7 +782,7 @@ class WC_Memberships_Admin_User_Memberships {
 
 			if ( ! $user_id || ! $user ) {
 
-				wc_memberships()->admin->message_handler->add_error( __( 'Please select a user to add as a member.', 'woocommerce-memberships' ) );
+				wc_memberships()->get_admin_instance()->get_message_handler()->add_error( __( 'Please select a user to add as a member.', 'woocommerce-memberships' ) );
 				wp_redirect( wp_get_referer() ); exit;
 			}
 
@@ -792,9 +792,9 @@ class WC_Memberships_Admin_User_Memberships {
 				'post_status' => array( 'publish', 'private', 'future', 'draft', 'pending', 'trash' )
 			) );
 
-			if ( count( $user_memberships ) == count( $membership_plans ) ) {
+			if ( count( $user_memberships ) === count( $membership_plans ) ) {
 
-				wc_memberships()->admin->message_handler->add_message( __( 'This user is already a member of every plan.', 'woocommerce-memberships' ) );
+				wc_memberships()->get_admin_instance()->get_message_handler()->add_message( __( 'This user is already a member of every plan.', 'woocommerce-memberships' ) );
 				wp_redirect( wp_get_referer() ); exit;
 			}
 		}

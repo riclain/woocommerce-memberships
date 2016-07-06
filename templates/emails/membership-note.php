@@ -22,10 +22,13 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Membership note email
+ *
+ * @type string $email_heading Email heading
+ * @type string $membership_note Membership note
  *
  * @since 1.0.0
  */
@@ -33,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 <?php do_action( 'woocommerce_email_header', $email_heading ); ?>
 
-<p><?php _e( "Hello, a note has just been added to your membership:", 'woocommerce-memberships' ); ?></p>
+<p><?php esc_html_e( 'Hello, a note has just been added to your membership:', 'woocommerce-memberships' ); ?></p>
 
 <blockquote><?php echo wpautop( wptexturize( $membership_note ) ) ?></blockquote>
 

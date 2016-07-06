@@ -22,18 +22,16 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Renders the content restricted to the membership in the my account area.
  *
- * @param WC_Memberships_User_Membership $customer_membership User Membership object
- * @param WP_Query $restricted_content Query results of posts and custom post types restricted to the membership
- * @param int $user_id The current user ID
+ * @type \WC_Memberships_User_Membership $customer_membership User Membership object
+ * @type \WP_Query $restricted_content Query results of posts and custom post types restricted to the membership
+ * @type int $user_id The current user ID
  *
- * @version 1.5.0
+ * @version 1.6.2
  * @since 1.4.0
  */
 ?>
@@ -48,7 +46,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 <?php else : ?>
 
-	<?php echo wc_memberships_get_members_area_page_links( 'my-membership-content', $customer_membership->get_plan(), $restricted_content ); ?>
+	<?php echo wc_memberships_get_members_area_page_links( $customer_membership->get_plan(), 'my-membership-content', $restricted_content ); ?>
 
 	<table class="shop_table shop_table_responsive my_account_orders my_account_memberships my_membership_content">
 
@@ -105,7 +103,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 					<?php elseif ( 'membership-content-type' === $column_id ) : ?>
 
 						<td class="membership-content-type" data-title="<?php echo esc_attr( $column_name ); ?>">
-							<?php echo esc_html( ucwords( $member_post->post_type ) ); ?>
+							<?php echo wc_memberships_get_content_type_name( $member_post ); ?>
 						</td>
 
 					<?php elseif ( 'membership-content-accessible' === $column_id ) : ?>
@@ -150,7 +148,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 	</table>
 
-	<?php echo wc_memberships_get_members_area_page_links( 'my-membership-content', $customer_membership->get_plan(), $restricted_content ); ?>
+	<?php echo wc_memberships_get_members_area_page_links( $customer_membership->get_plan(), 'my-membership-content', $restricted_content ); ?>
 
 <?php endif; ?>
 

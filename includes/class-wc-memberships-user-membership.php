@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * User Membership class
@@ -31,8 +31,8 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * to a User Membership. A single user can have multiple memberships.
  *
  * Technically, it's a wrapper around an instance of WP_Post with the
- * 'wc_user_membership' custom post type, similar to how WC_Product or
- * WC_Order are implemented.
+ * 'wc_user_membership' custom post type, similar to how \WC_Product
+ * or \WC_Order are implemented.
  *
  * @since 1.0.0
  */
@@ -45,7 +45,7 @@ class WC_Memberships_User_Membership {
 	/** @public string User Membership plan id */
 	public $plan_id;
 
-	/** @public string User Membership plan */
+	/** @public \WC_Memberships_Membership_Plan User Membership plan */
 	public $plan;
 
 	/** @public string User Membership user (author) id */
@@ -54,7 +54,7 @@ class WC_Memberships_User_Membership {
 	/** @public string User Membership (post) status */
 	public $status;
 
-	/** @public object User Membership post object */
+	/** @public \WP_Post User Membership post object */
 	public $post;
 
 
@@ -135,7 +135,7 @@ class WC_Memberships_User_Membership {
 	 * Get the plan object
 	 *
 	 * @since 1.0.0
-	 * @return WC_Memberships_Membership_Plan
+	 * @return \WC_Memberships_Membership_Plan
 	 */
 	public function get_plan() {
 
@@ -154,7 +154,7 @@ class WC_Memberships_User_Membership {
 	 * @return string Status slug
 	 */
 	public function get_status() {
-		return 'wcm-' === substr( $this->status, 0, 4 ) ? substr( $this->status, 4 ) : $this->status;
+		return 0 === strpos( $this->status, 'wcm-' ) ? substr( $this->status, 4 ) : $this->status;
 	}
 
 
@@ -164,7 +164,7 @@ class WC_Memberships_User_Membership {
 	 * @since 1.0.0
 	 * @param string $date Date string, in 'mysql' format
 	 * @param string $format Optional. Format to use. Defaults to 'mysql'
-	 * @return string Formatted date
+	 * @return int|string Formatted date
 	 */
 	private function format_date( $date, $format = 'mysql' ) {
 
@@ -193,11 +193,12 @@ class WC_Memberships_User_Membership {
 	 *
 	 * @since 1.0.0
 	 * @param string $format Optional. Defaults to 'mysql'
-	 * @return string Start date
+	 * @return null|int|string Start date
 	 */
 	public function get_start_date( $format = 'mysql' ) {
 
 		$date = get_post_meta( $this->get_id(), '_start_date', true );
+
 		return $date ? $this->format_date( $date, $format ) : null;
 	}
 
@@ -207,7 +208,7 @@ class WC_Memberships_User_Membership {
 	 *
 	 * @since 1.3.8
 	 * @param string $format Optional. Defaults to 'mysql'
-	 * @return int|string
+	 * @return null|int|string
 	 */
 	public function get_local_start_date( $format = 'mysql' ) {
 
@@ -215,7 +216,19 @@ class WC_Memberships_User_Membership {
 		$date = $this->get_start_date( 'timestamp' );
 
 		// adjust the date to the site's local timezone
-		return $date ? wc_memberships()->adjust_date_by_timezone( $date, $format ) : null;
+		return $date ? wc_memberships_adjust_date_by_timezone( $date, $format ) : null;
+	}
+
+
+	/**
+	 * Set the membership start datetime
+	 *
+	 * @since 1.6.2
+	 * @param string $date Date in MySQL format
+	 */
+	public function set_start_date( $date ) {
+
+		update_post_meta( $this->get_id(), '_start_date', $date );
 	}
 
 
@@ -226,13 +239,13 @@ class WC_Memberships_User_Membership {
 	 * @param string $format Optional. Defaults to 'mysql'
 	 * @param bool $include_paused Optional. Whether to include the time this membership
 	 *                             has been paused. Defaults to true.
-	 * @return string End date
+	 * @return null|int|string
 	 */
 	public function get_end_date( $format = 'mysql', $include_paused = true ) {
 
 		$date = get_post_meta( $this->get_id(), '_end_date', true );
 
-		// Adjust end/expiry date if paused date exists
+		// adjust end/expiry date if paused date exists
 		if ( $date && $include_paused && $paused_date = $this->get_paused_date( 'timestamp' ) ) {
 
 			$difference    = current_time( 'timestamp', true ) - $paused_date;
@@ -252,7 +265,7 @@ class WC_Memberships_User_Membership {
 	 * @param string $format Optional. Defaults to 'mysql'
 	 * @param bool $include_paused Optional. Whether to include the time this membership
 	 *                             has been paused. Defaults to true.
-	 * @return int|string
+	 * @return null|int|string
 	 */
 	public function get_local_end_date( $format = 'mysql', $include_paused = true ) {
 
@@ -260,7 +273,83 @@ class WC_Memberships_User_Membership {
 		$date = $this->get_end_date( 'timestamp', $include_paused );
 
 		// adjust the date to the site's local timezone
-		return $date ? wc_memberships()->adjust_date_by_timezone( $date, $format ) : null;
+		return $date ? wc_memberships_adjust_date_by_timezone( $date, $format ) : null;
+	}
+
+
+	/**
+	 * Set the membership end datetime
+	 *
+	 * @since 1.0.0
+	 * @param string $date End date either as a unix timestamp or mysql datetime string. Defaults to empty string
+	 */
+	public function set_end_date( $date = '' ) {
+
+		$end_timestamp = ! empty( $date ) ? strtotime( $date ) : '';
+		$end_date      = '';
+
+		if ( ! empty( $end_timestamp ) ) {
+			$end_date = date( 'Y-m-d H:i:s', $end_timestamp );
+		}
+
+		// update end date in post meta
+		update_post_meta( $this->get_id(), '_end_date', $end_date );
+
+		$hook_args = array( $this->get_id() );
+
+		// unschedule any previous expiry hooks
+		if ( $scheduled = wp_next_scheduled( 'wc_memberships_user_membership_expiry', $hook_args  ) ) {
+			wp_unschedule_event( $scheduled, 'wc_memberships_user_membership_expiry', $hook_args );
+		}
+
+		// schedule the expiry hook, if there is an end date
+		if ( $end_timestamp && $end_timestamp > current_time( 'timestamp', true ) ) {
+			wp_schedule_single_event( $end_timestamp, 'wc_memberships_user_membership_expiry', $hook_args );
+		}
+	}
+
+
+	/**
+	 * Get the membership cancelled datetime
+	 *
+	 * @since 1.6.2
+	 * @param string $format Optional. Defaults to 'mysql'
+	 * @return null|int|string
+	 */
+	public function get_cancelled_date( $format = 'mysql' ) {
+
+		$date = get_post_meta( $this->get_id(), '_cancelled_date', true );
+
+		return $date ? $this->format_date( $date, $format ) : null;
+	}
+
+
+	/**
+	 * Get the membership cancelled local datetime
+	 *
+	 * @since 1.6.2
+	 * @param string $format Optional. Defaults to 'mysql'
+	 * @return null|int|string
+	 */
+	public function get_local_cancelled_date( $format = 'mysql' ) {
+
+		// get the date timestamp
+		$date = $this->get_cancelled_date( 'timestamp' );
+
+		// adjust the date to the site's local timezone
+		return $date ? wc_memberships_adjust_date_by_timezone( $date, $format ) : null;
+	}
+
+
+	/**
+	 * Set the membership cancelled datetime
+	 *
+	 * @since 1.6.2
+	 * @param string $date Date in MySQL format
+	 */
+	public function set_cancelled_date( $date ) {
+
+		update_post_meta( $this->get_id(), '_cancelled_date', $date );
 	}
 
 
@@ -269,11 +358,12 @@ class WC_Memberships_User_Membership {
 	 *
 	 * @since 1.0.0
 	 * @param string $format Optional. Defaults to 'mysql'
-	 * @return string Paused date
+	 * @return null|int|string Paused date
 	 */
 	public function get_paused_date( $format = 'mysql' ) {
 
 		$date = get_post_meta( $this->get_id(), '_paused_date', true );
+
 		return $date ? $this->format_date( $date, $format ) : null;
 	}
 
@@ -283,7 +373,7 @@ class WC_Memberships_User_Membership {
 	 *
 	 * @since 1.3.8
 	 * @param string $format Optional. Defaults to 'mysql'
-	 * @return int|string
+	 * @return null|int|string
 	 */
 	public function get_local_paused_date( $format = 'mysql' ) {
 
@@ -291,34 +381,199 @@ class WC_Memberships_User_Membership {
 		$date = $this->get_paused_date( 'timestamp' );
 
 		// adjust the date to the site's local timezone
-		return $date ? wc_memberships()->adjust_date_by_timezone( $date, $format ) : null;
+		return $date ? wc_memberships_adjust_date_by_timezone( $date, $format ) : null;
 	}
 
 
 	/**
-	 * Set the membership end datetime
+	 * Set the membership paused datetime
 	 *
-	 * @since 1.0.0
-	 * @param string $date End date either as a unix timestamp or mysql datetime string. Defaults to empty string.
+	 * @since 1.6.2
+	 * @param string $date Date in MySQL format
 	 */
-	public function set_end_date( $date = '' ) {
+	public function set_paused_date( $date ) {
 
-		$end_timestamp = $date ? strtotime( $date ) : '';
+		update_post_meta( $this->get_id(), '_paused_date', $date );
+	}
 
-		// Update end date in post meta
-		update_post_meta( $this->get_id(), '_end_date', $end_timestamp ? date( 'Y-m-d H:i:s', $end_timestamp ) : '' );
 
-		$hook_args = array( $this->get_id() );
+	/**
+	 * Removes the membership paused datetime information
+	 *
+	 * @since 1.6.2
+	 */
+	public function delete_paused_date() {
 
-		// Unschedule any previous expiry hooks
-		if ( $scheduled = wp_next_scheduled( 'wc_memberships_user_membership_expiry', $hook_args  ) ) {
-			wp_unschedule_event( $scheduled, 'wc_memberships_user_membership_expiry', $hook_args );
+		delete_post_meta( $this->get_id(), '_paused_date' );
+	}
+
+
+	/**
+	 * Get the memberships paused periods as an associative array of timestamps
+	 *
+	 * @since 1.6.2
+	 * @return array Associative array of start => end ranges of paused intervals
+	 */
+	public function get_paused_intervals() {
+
+		$intervals = get_post_meta( $this->get_id(), '_paused_intervals', true );
+
+		return is_array( $intervals ) ? $intervals : array();
+	}
+
+
+	/**
+	 * Add a record to the membership pausing registry
+	 *
+	 * @since 1.6.2
+	 * @param string $interval Either 'start' or 'end'
+	 * @param int $time A valid timestamp in UTC
+	 */
+	public function set_paused_interval( $interval, $time ) {
+
+		if ( ! is_numeric( $time ) || (int) $time <= 0 ) {
+			return;
 		}
 
-		// Schedule the expiry hook, if there is an end date
-		if ( $end_timestamp && $end_timestamp > current_time( 'timestamp', true ) ) {
-			wp_schedule_single_event( $end_timestamp, 'wc_memberships_user_membership_expiry', $hook_args );
+		$intervals = $this->get_paused_intervals();
+
+		if ( 'start' === $interval ) {
+
+			// sanity check to avoid overwriting an existing key
+			if ( ! array_key_exists( $time, $intervals ) ) {
+				$intervals[ (int) $time ] = '';
+			}
+
+		} elseif ( 'end' === $interval ) {
+
+			if ( ! empty( $intervals ) ) {
+
+				// get the last timestamp when the membership was paused
+				end( $intervals );
+				$last = key( $intervals );
+
+				// sanity check to avoid overwriting an existing value
+				if ( is_numeric( $last ) && empty( $intervals[ $last ] ) ) {
+					$intervals[ (int) $last ] = (int) $time;
+				}
+
+			// this might be the case where a paused membership didn't have interval tracking yet
+			} elseif ( $this->is_paused() && $paused_date = $this->get_paused_date( 'timestamp' ) ) {
+
+				$intervals[ (int) $paused_date ] = (int) $time;
+			}
 		}
+
+		update_post_meta( $this->get_id(), '_paused_intervals', $intervals );
+	}
+
+
+	/**
+	 * Get the total active or inactive time of a membership
+	 *
+	 * @since 1.6.2
+	 * @param string $type Either 'active' or 'inactive'
+	 * @param string $format Optional, can be either 'timestamp' (default) or 'human'
+	 * @return null|int|string
+	 */
+	private function get_total_time( $type, $format = 'timestamp' ) {
+
+		$total  = null;
+		$time   = 0; // time as 0 seconds
+		$start  = $this->get_start_date( 'timestamp' );
+		$pauses = $this->get_paused_intervals();
+
+		// set 'time' as now or the most recent time when the membership was active
+		if ( 'active' === $type ) {
+
+			if ( $this->is_expired() ) {
+				$time = $this->get_end_date( 'timestamp' );
+			} elseif ( $this->is_cancelled() ) {
+				$time = $this->get_cancelled_date( 'timestamp' );
+			}
+
+			if ( empty( $total ) ) {
+				$time = current_time( 'timestamp', true );
+			}
+		}
+
+		if ( ! empty( $pauses ) ) {
+
+			end( $pauses );
+			$last = key( $pauses );
+
+			// if the membership is currently paused, add the time until now
+			if ( isset( $pauses[ $last ] ) && '' === $pauses[ $last ] && $this->is_paused() ) {
+				$pauses[ $last ] = current_time( 'timestamp', true );
+			}
+
+			reset( $pauses );
+
+			$previous_start = (int) $start;
+
+			foreach ( $pauses as $pause_start => $pause_end ) {
+
+				// sanity check, see if there is a previous interval without an end record
+				// or if the start record in the key is invalid
+				if ( empty( $pause_end ) || $pause_start < $previous_start ) {
+					continue;
+				}
+
+				if ( 'active' === $type ) {
+					// subtract from the most recent active time paused intervals
+					$time -= max( 0, (int) $pause_end - (int) $pause_start );
+				} elseif ( 'inactive' === $type ) {
+					// add up from 0s the time this membership has been inactive
+					$time += max( 0, (int) $pause_end - (int) $pause_start );
+				}
+
+				$previous_start = (int) $pause_start;
+			}
+		}
+
+		// get the total as a difference
+		if ( 'active' === $type ) {
+			$total = max( 0, $time - $start );
+		} elseif ( 'inactive' === $type ) {
+			$total = max( 0, $time );
+		}
+
+		// maybe humanize the output
+		if ( is_int( $total ) && 'human' === $format ) {
+
+			$time_diff = max( $start, $start + $total );
+			$total     = $time_diff !== $start && $time_diff > 0 ? human_time_diff( $start, $time_diff ) : 0;
+		}
+
+		return $total;
+	}
+
+
+	/**
+	 * Get the total amount of time the membership has been active
+	 * since its start date
+	 *
+	 * @since 1.6.2
+	 * @param string $format Optional, can be either 'timestamp' (default) or 'human'
+	 *                       for a human readable span relative to the start date
+	 * @return int|string
+	 */
+	public function get_total_active_time( $format = 'timestamp' ) {
+		return $this->get_total_time( 'active', $format );
+	}
+
+
+	/**
+	 * Get the total amount of time the membership has been inactive
+	 * since its start date
+	 *
+	 * @since 1.6.2
+	 * @param string $format Optional, can be either 'timestamp' (default) or 'human'
+	 *                       for a human readable inactive time span
+	 * @return int|string
+	 */
+	public function get_total_inactive_time( $format = 'timestamp' ) {
+		return $this->get_total_time( 'inactive', $format );
 	}
 
 
@@ -337,7 +592,7 @@ class WC_Memberships_User_Membership {
 	 * Get the order that granted access
 	 *
 	 * @since 1.0.0
-	 * @return WC_Order Instance of WC_Order
+	 * @return \WC_Order Instance of \WC_Order
 	 */
 	public function get_order() {
 
@@ -364,7 +619,7 @@ class WC_Memberships_User_Membership {
 	 * Get the product that granted access
 	 *
 	 * @since 1.0.0
-	 * @return WC_Product|null Instance of WC_Product
+	 * @return \WC_Product|null Instance of WC_Product
 	 */
 	public function get_product() {
 
@@ -383,7 +638,7 @@ class WC_Memberships_User_Membership {
 	 * @return bool True, if membership is cancelled, false otherwise
 	 */
 	public function is_cancelled() {
-		return 'cancelled' == $this->get_status();
+		return 'cancelled' === $this->get_status();
 	}
 
 
@@ -394,7 +649,7 @@ class WC_Memberships_User_Membership {
 	 * @return bool True, if membership is expired, false otherwise
 	 */
 	public function is_expired() {
-		return 'expired' == $this->get_status();
+		return 'expired' === $this->get_status();
 	}
 
 
@@ -405,7 +660,7 @@ class WC_Memberships_User_Membership {
 	 * @return bool True, if membership is paused, false otherwise
 	 */
 	public function is_paused() {
-		return 'paused' == $this->get_status();
+		return 'paused' === $this->get_status();
 	}
 
 
@@ -428,7 +683,7 @@ class WC_Memberships_User_Membership {
 	/**
 	 * Get cancel membership URL for frontend
 	 *
-	 * @since 1.0
+	 * @since 1.0.0
 	 * @return string Cancel URL
 	 */
 	public function get_cancel_membership_url() {
@@ -453,7 +708,7 @@ class WC_Memberships_User_Membership {
 	/**
 	 * Get renew membership URL for frontend
 	 *
-	 * @since 1.0
+	 * @since 1.0.0
 	 * @return string Renew URL
 	 */
 	public function get_renew_membership_url() {
@@ -481,7 +736,7 @@ class WC_Memberships_User_Membership {
 	 * @since 1.0.0
 	 * @param string $filter Optional: 'customer' or 'private', default 'all'
 	 * @param int $paged Optional: pagination
-	 * @return WP_Comment[] Array of comment (membership notes) objects
+	 * @return \WP_Comment[] Array of comment (membership notes) objects
 	 */
 	public function get_notes( $filter = 'all', $paged = 1 ) {
 
@@ -489,24 +744,24 @@ class WC_Memberships_User_Membership {
 			'post_id' => $this->get_id(),
 			'approve' => 'approve',
 			'type'    => 'user_membership_note',
-			'paged'   => intval( $paged ),
+			'paged'   => (int) $paged,
 		);
 
-		remove_filter( 'comments_clauses', array( wc_memberships()->user_memberships, 'exclude_membership_notes' ), 10 );
+		remove_filter( 'comments_clauses', array( wc_memberships()->get_user_memberships_instance(), 'exclude_membership_notes' ), 10 );
 
 		$comments = get_comments( $args );
 		$notes    = array();
 
-		if ( in_array( $filter, array( 'customer', 'private' ) ) ) {
+		if ( in_array( $filter, array( 'customer', 'private' ), true ) ) {
 
 			foreach ( $comments as $note ) {
 
 				$notified = get_comment_meta( $note->comment_ID, 'notified', true );
 
-				if ( $notified && 'customer' == $filter )  {
-					array_push( $notes, $note );
-				} elseif ( ! $notified && 'private' == $filter ) {
-					array_push( $notes, $note );
+				if ( $notified && 'customer' === $filter )  {
+					$notes[] = $note;
+				} elseif ( ! $notified && 'private' === $filter ) {
+					$notes[] = $note;
 				}
 			}
 
@@ -593,7 +848,7 @@ class WC_Memberships_User_Membership {
 	public function pause_membership( $note = null ) {
 
 		$this->update_status( 'paused', $note ? $note : __( 'Membership paused.', 'woocommerce-memberships' ) );
-		update_post_meta( $this->get_id(), '_paused_date', current_time( 'mysql', true ) );
+		$this->set_paused_date( current_time( 'mysql', true ) );
 	}
 
 
@@ -604,7 +859,30 @@ class WC_Memberships_User_Membership {
 	 * @param string $note Optional note to add
 	 */
 	public function cancel_membership( $note = null ) {
+
 		$this->update_status( 'cancelled', $note ? $note : __( 'Membership cancelled.', 'woocommerce-memberships' ) );
+		$this->set_cancelled_date( current_time( 'mysql', true ) );
+	}
+
+
+	/**
+	 * Expire membership
+	 *
+	 * @since 1.6.2
+	 */
+	public function expire_membership() {
+
+		/**
+		 * Confirm expire User Membership
+		 *
+		 * @since 1.5.4
+		 * @param bool $expire True: expire this membership, False: retain, Default: true, expire it
+		 * @param \WC_Memberships_User_Membership $user_membership The User Membership object
+		 */
+		if ( true === apply_filters( 'wc_memberships_expire_user_membership', true, $this ) ) {
+
+			$this->update_status( 'expired', __( 'Membership expired.', 'woocommerce-memberships' ) );
+		}
 	}
 
 
@@ -612,14 +890,22 @@ class WC_Memberships_User_Membership {
 	 * Activate membership
 	 *
 	 * @since 1.0.0
-	 * @param string $note Optional note to add
+	 * @param null|string $note Optional note to add
 	 */
 	public function activate_membership( $note = null ) {
 
-		if ( ! $note ) {
-			$note = $this->is_paused() ?
-							__( 'Membership resumed.', 'woocommerce-memberships' ) :
-							__( 'Membership activated.', 'woocommerce-memberships' );
+		if ( empty( $note ) ) {
+
+			if ( $this->is_paused() ) {
+
+				$note = __( 'Membership resumed.', 'woocommerce-memberships' );
+
+				$this->set_paused_interval( 'end', current_time( 'timestamp', true ) );
+
+			} else {
+
+				$note = __( 'Membership activated.', 'woocommerce-memberships' );
+			}
 		}
 
 		$this->update_status( 'active', $note );
@@ -634,13 +920,25 @@ class WC_Memberships_User_Membership {
 	 * @return bool
 	 */
 	public function has_status( $status ) {
-		return apply_filters( 'woocommerce_memberships_membership_has_status', ( is_array( $status ) && in_array( $this->get_status(), $status ) ) || $this->get_status() === $status ? true : false, $this, $status );
+
+		$has_status = ( ( is_array( $status ) && in_array( $this->get_status(), $status, true ) ) || $this->get_status() === $status );
+
+		/**
+		 * Filter if User Membership has a status
+		 *
+		 * @since 1.0.0
+		 * @param bool $has_status Whether the User Membership has a certain status
+		 * @param \WC_Memberships_User_Membership $user_membership Instance of the User Membership object
+		 * @param array|string $status One (string) status or any statuses (array) to check
+		 */
+		return apply_filters( 'woocommerce_memberships_membership_has_status', $has_status, $this, $status );
 	}
 
 
 	/**
 	 * Updates status of membership
 	 *
+	 * @since 1.0.0
 	 * @param string $new_status Status to change the order to. No internal wcm- prefix is required.
 	 * @param string $note (default: '') Optional note to add
 	 */
@@ -650,25 +948,97 @@ class WC_Memberships_User_Membership {
 			return;
 		}
 
-		// Standardise status names.
-		$new_status = 'wcm-' === substr( $new_status, 0, 4 ) ? substr( $new_status, 4 ) : $new_status;
+		// standardise status names
+		$new_status = 0 === strpos( $new_status, 'wcm-' ) ? substr( $new_status, 4 ) : $new_status;
 		$old_status = $this->get_status();
 
-		// Get valid statuses
+		// get valid statuses
 		$valid_statuses = wc_memberships_get_user_membership_statuses();
 
-		// Only update if they differ - and ensure post_status is a 'wcm' status.
-		if ( $new_status !== $old_status && in_array( 'wcm-' . $new_status, array_keys( $valid_statuses ) ) ) {
+		// only update if they differ - and ensure post_status is a 'wcm' status.
+		if ( $new_status !== $old_status && array_key_exists( 'wcm-' . $new_status, $valid_statuses ) ) {
 
-			// Note will be added to the membership by the general User_Memberships utility class,
-			// so that we add only 1 note instead of 2 when updating the status.
-			wc_memberships()->user_memberships->set_membership_status_transition_note( $note );
+			// note will be added to the membership by the general User_Memberships utility class,
+			// so that we add only 1 note instead of 2 when updating the status
+			wc_memberships()->get_user_memberships_instance()->set_membership_status_transition_note( $note );
 
-			// Update the order
-			wp_update_post( array( 'ID' => $this->get_id(), 'post_status' => 'wcm-' . $new_status ) );
+			// update the order
+			wp_update_post( array(
+				'ID'          => $this->get_id(),
+				'post_status' => 'wcm-' . $new_status,
+			) );
 
 			$this->status = 'wcm-' . $new_status;
 		}
+	}
+
+
+	/**
+	 * Transfer the User Membership to another user
+	 *
+	 * If a transfer is successful it will also record
+	 * the ownership passage in a post meta
+	 *
+	 * @since 1.6.0
+	 * @param \WP_User|int $to_user User to transfer membership to
+	 * @return bool Whether the transfer was successful
+	 */
+	public function transfer_ownership( $to_user ) {
+
+		if ( is_numeric( $to_user ) ) {
+			$to_user = get_user_by( 'id', (int) $to_user );
+		}
+
+		$user_membership_id = (int) $this->get_id();
+		$previous_owner     = (int) $this->get_user_id();
+		$new_owner          = $to_user;
+
+		if ( ! $new_owner instanceof WP_User || ! $previous_owner || ! $user_membership_id ) {
+			return false;
+		}
+
+		$updated = wp_update_post( array(
+			'ID'          => $user_membership_id,
+			'post_type'   => 'wc_user_membership',
+			'post_author' => $new_owner->ID,
+		) );
+
+		if ( (int) $this->get_id() !== (int) $updated ) {
+			return false;
+		}
+
+		$owners     = $this->get_previous_owners();
+		$last_owner = array( current_time( 'timestamp', true ) => $previous_owner );
+
+		$previous_owners = ! empty( $owners ) && is_array( $owners ) ? array_merge( $owners, $last_owner ) : $last_owner;
+
+		update_post_meta( $user_membership_id, '_previous_owners', $previous_owners );
+
+		$this->add_note(
+			/* translators: Membership transferred from user A to user B */
+			sprintf( __( 'Membership transferred from %1$s to %2$s.', 'woocommerce-memberships' ),
+				get_user_by( 'id', $previous_owner )->user_nicename,
+				$new_owner->user_nicename
+			)
+		);
+
+		return true;
+	}
+
+
+	/**
+	 * Get User Membership previous owners
+	 *
+	 * If the User Membership has been previously transferred
+	 * from an user to another, this method will return its
+	 * ownership history as an associative array of
+	 * timestamps (time of transfer) and user ids
+	 *
+	 * @since 1.6.0
+	 * @return false|array
+	 */
+	public function get_previous_owners() {
+		return get_post_meta( $this->get_id(), '_previous_owners', true );
 	}
 
 

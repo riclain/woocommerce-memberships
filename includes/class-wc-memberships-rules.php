@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Membership Rules class
@@ -610,7 +610,7 @@ class WC_Memberships_Rules {
 
 		foreach ( $all_discount_rules as $rule ) {
 
-			if ( $rule->is_active() && wc_memberships()->user_memberships->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
+			if ( $rule->is_active() && wc_memberships()->get_user_memberships_instance()->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
 				$user_discount_rules[] = $rule;
 			}
 		}
@@ -639,7 +639,7 @@ class WC_Memberships_Rules {
 
 		foreach ( $all_rules as $rule ) {
 
-			if ( wc_memberships()->user_memberships->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
+			if ( wc_memberships()->get_user_memberships_instance()->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
 				$user_rules[] = $rule;
 			}
 		}
@@ -677,7 +677,7 @@ class WC_Memberships_Rules {
 				$matches_access_type = true;
 			}
 
-			if ( $matches_access_type && wc_memberships()->user_memberships->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
+			if ( $matches_access_type && wc_memberships()->get_user_memberships_instance()->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
 				$user_rules[] = $rule;
 			}
 		}
@@ -718,7 +718,7 @@ class WC_Memberships_Rules {
 					continue;
 				}
 
-				if ( wc_memberships()->user_memberships->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
+				if ( wc_memberships()->get_user_memberships_instance()->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
 					$has_access = true;
 					break;
 				}
@@ -783,7 +783,7 @@ class WC_Memberships_Rules {
 						continue;
 					}
 
-					if ( in_array( $rule->get_access_type(), array( 'view', 'purchase' ) ) && wc_memberships()->user_memberships->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
+					if ( in_array( $rule->get_access_type(), array( 'view', 'purchase' ), true ) && wc_memberships()->get_user_memberships_instance()->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
 						$has_access = true;
 						break;
 					}
@@ -830,7 +830,7 @@ class WC_Memberships_Rules {
 
 				foreach ( $rules as $rule ) {
 
-					if ( 'purchase' === $rule->get_access_type() && wc_memberships()->user_memberships->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
+					if ( 'purchase' === $rule->get_access_type() && wc_memberships()->get_user_memberships_instance()->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
 						$has_access = true;
 						break;
 					}
@@ -924,7 +924,7 @@ class WC_Memberships_Rules {
 	public function get_public_posts() {
 
 		return get_posts( array(
-			'post_type'      => array_keys( wc_memberships()->admin->get_valid_post_types_for_content_restriction() ),
+			'post_type'      => array_keys( wc_memberships()->get_admin_instance()->get_valid_post_types_for_content_restriction() ),
 			'post_status'    => 'any',
 			'meta_key'       => '_wc_memberships_force_public',
 			'meta_value'     => 'yes',

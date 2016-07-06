@@ -1,5 +1,41 @@
 *** WooCommerce Memberships Changelog ***
 
+2016.06.22 - version 1.6.2
+ * Tweak - When dripping content for delayed access, take into consideration the amount of time a membership may have been paused when reactivating the membership and resuming access to restricted content
+ * Tweak - When redirecting non-members off from restricted content, if they login they are redirected back to a content they have access to
+ * Fix - Products set on sale didn't display the "On Sale" badge
+ * Fix - When importing a user membership with an active status but an expire date set in the past, expire the membership upon import
+ * Fix - Keeps the WooCommerce menu open and the Memberships menu item highlighted when viewing the Memberships Import / Export tab page
+ * Fix - Correctly display labels for content types in Member Area (use post type labels instead of capitalized slugs)
+
+2016.06.07 - version 1.6.1
+ * Fix - Disable discounts for Subscription renewals to make sure that renewal order prices are honoured also in manually created Subscriptions
+ * Fix - Prevent WooCommerce 2.6 My Account page tabbed navigation to be loaded twice when viewing a Membership
+
+2016.06.02 - version 1.6.0
+ * Feature - Export and Import User Memberships in CSV format
+ * Tweak - Once a Subscription is cancelled or trashed, it's now automatically unlinked from an associated Membership
+ * Tweak - Restricted or delayed content can be filtered so excerpts or default restriction messages can be replaced
+ * Fix - Expired memberships no longer display the "View" link for the member area
+ * Fix - When discounting Subscriptions sign up fees is enabled, the cart totals may have not accounted for the sign up fee discount in the calculation
+ * Misc - Improved compatibility with Dynamic Pricing, Product Bundles, Composite Products, Chained Products and other extensions that may introduce new product types and handle discounted prices
+ * Misc - Refactored integrations classes for Subscriptions and other third party plugins for better handling and performance
+ * Misc - Moved helper functions out of plugin's main class, deprecated methods in main class, admin and front end classes
+ * Misc - Added support for WooCommerce 2.6
+ * Misc - Removed support for WooCommerce 2.3
+
+2016.03.30 - version 1.5.4
+ * Tweak - Subscriptions: When a customer switches between Subscriptions, the Membership tied to the Subscription variation moved away from will no longer be linked to it and stay cancelled
+ * Fix - Check if a Subscription-tied membership should really expire by comparing it to either the Subscription's or Membership's expiry date
+ * Fix - Do not reactivate paused memberships upon Subscriptions plugin (re)activation unless they are tied to an active Subscription
+ * Fix - Members could not be correctly sorted by member name in admin dashboard screen
+ * Misc - Subscriptions: Introduced `wc_memberships_get_memberships_from_subscription()` function to get User Memberships from a Subscription
+
+2016.03.03 - version 1.5.3
+ * Fix - When creating a plan without products that grant access but setting an access length, and only later creating a Subscription product that grants access, this combination might trigger early membership expirations in some installations
+ * Fix - Do not show sticky posts at the top of membership content posts list
+ * Fix - Member Area endpoints don't work when My Account permalink includes a base such as `/store/my-account` (either by setting the permalink structure with a base or by setting a parent page to the My Account page)
+
 2016.02.09 - version 1.5.2
  * Fix - Custom member area templates are properly loaded
 

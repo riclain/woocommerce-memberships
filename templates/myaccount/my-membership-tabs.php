@@ -22,16 +22,14 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Renders the tab sections on My Account page for a customer membership
  *
- * @param array $members_area_sections Associative array of members area sections to put in tabs
- * @param WC_Memberships_User_membership $customer_membership Object
- * @param string $current_section The current section displayed
+ * @type array $members_area_sections Associative array of members area sections to put in tabs
+ * @type \WC_Memberships_User_membership $customer_membership Object
+ * @type string $current_section The current section displayed
  *
  * @version 1.4.0
  * @since 1.4.0

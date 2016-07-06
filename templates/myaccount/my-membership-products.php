@@ -22,16 +22,14 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Renders the products restricted to the membership in the my account area.
  *
- * @param WC_Memberships_User_Membership $customer_membership User Membership object
- * @param WP_Query $restricted_products Query results of products post objects for all products restricted to the membership
- * @param int $user_id The current user ID
+ * @type \WC_Memberships_User_Membership $customer_membership User Membership object
+ * @type \WP_Query $restricted_products Query results of products post objects for all products restricted to the membership
+ * @type int $user_id The current user ID
  *
  * @version 1.5.0
  * @since 1.4.0

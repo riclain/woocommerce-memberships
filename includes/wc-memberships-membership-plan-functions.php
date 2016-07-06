@@ -22,34 +22,35 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 
 /**
  * Main function for returning a membership plan
  *
  * @since 1.0.0
- * @param mixed $post Post object or post ID of the membership plan.
- * @return WC_Memberships_Membership_Plan|bool false on failure
+ * @param int|string|\WC_Memberships_Membership_Plan $membership_plan Post object, ID or slug of the membership plan
+ * @return \WC_Memberships_Membership_Plan|false Returns the plan object or false on failure
  */
-function wc_memberships_get_membership_plan( $post = null ) {
-	return wc_memberships()->plans->get_membership_plan( $post );
+function wc_memberships_get_membership_plan( $membership_plan = null ) {
+	return wc_memberships()->get_plans_instance()->get_membership_plan( $membership_plan );
 }
+
 
 /**
  * Main function for returning all available membership plans
  *
  * @since 1.0.0
- * @param array $args Optional array of arguments. Same as for get_posts
- * @return WC_Memberships_Membership_Plan[] Array of WC_Memberships_Membership_Plan objects
+ * @param array $args Optional array of arguments, same as for get_posts()
+ * @return \WC_Memberships_Membership_Plan[]
  */
 function wc_memberships_get_membership_plans( $args = null ) {
-	return wc_memberships()->plans->get_membership_plans( $args );
+	return wc_memberships()->get_plans_instance()->get_membership_plans( $args );
 }
 
 
 /**
- * Get members area sections
+ * Get member area sections
  *
  * @since 1.4.0
  * @param int|string $membership_plan Optional: membership plan id for filtering purposes
@@ -58,9 +59,11 @@ function wc_memberships_get_membership_plans( $args = null ) {
 function wc_memberships_get_members_area_sections( $membership_plan = '' ) {
 
 	/**
-	 * Filters the available choices for the members area sections of a membership plan
+	 * Filters the available choices for the member area sections of a membership plan
 	 *
 	 * @since 1.4.0
+	 * @param array $member_area_sections Associative array with member area id and label of each section
+	 * @param int|string $membership_plan Optional, the current membership plan, might be empty
 	 */
 	return apply_filters( 'wc_membership_plan_members_area_sections', array(
 		'my-membership-content'   => __( 'My Content', 'woocommerce-memberships' ),

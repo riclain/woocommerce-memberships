@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 if ( ! class_exists( 'WC_Memberships_Membership_Note_Email' ) ) :
 
@@ -41,7 +41,7 @@ class WC_Memberships_Membership_Note_Email extends WC_Email {
 	/**
 	 * Constructor
 	 */
-	function __construct() {
+	public function __construct() {
 
 		$this->id             = 'wc_memberships_membership_note';
 		$this->title          = __( 'Membership note', 'woocommerce-memberships' );
@@ -77,21 +77,14 @@ class WC_Memberships_Membership_Note_Email extends WC_Email {
 	 *
 	 * @param array $args Optional
 	 */
-	function trigger( $args ) {
+	public function trigger( $args ) {
 
 		if ( $args && isset( $args['notify'] ) && $args['notify'] ) {
 
-			$defaults = array(
-				'user_membership_id' => '',
-				'membership_note'    => ''
-			);
+			$user_membership_id = isset( $args['user_membership_id'] ) ? $args['user_membership_id'] : '';
+			$membership_note    = isset( $args['membership_note'] )    ? $args['membership_note']    : '';
 
-			$args = wp_parse_args( $args, $defaults );
-
-			// TODO refactor to remove usage of `extract` here
-			extract( $args );
-
-			if ( $user_membership_id && ( $this->object = wc_memberships_get_user_membership( $user_membership_id ) ) ) {
+			if ( ! empty( $user_membership_id ) && ( $this->object = wc_memberships_get_user_membership( $user_membership_id ) ) ) {
 
 				$user = get_userdata( $this->object->get_user_id() );
 
@@ -116,7 +109,7 @@ class WC_Memberships_Membership_Note_Email extends WC_Email {
 	 *
 	 * @return string HTML content
 	 */
-	function get_content_html() {
+	public function get_content_html() {
 
 		ob_start();
 
@@ -137,7 +130,7 @@ class WC_Memberships_Membership_Note_Email extends WC_Email {
 	 *
 	 * @return string Plain text content
 	 */
-	function get_content_plain() {
+	public function get_content_plain() {
 
 		ob_start();
 
@@ -156,5 +149,3 @@ class WC_Memberships_Membership_Note_Email extends WC_Email {
 }
 
 endif;
-
-return new WC_Memberships_Membership_Note_Email();

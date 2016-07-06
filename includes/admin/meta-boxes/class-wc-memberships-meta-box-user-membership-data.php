@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * User Membership Data Meta Box
@@ -166,74 +166,96 @@ class WC_Memberships_Meta_Box_User_Membership_Data extends WC_Memberships_Meta_B
 			<h4><?php esc_html_e( 'Membership Details', 'woocommerce-memberships' ); ?></h4>
 
 			<div class="woocommerce_options_panel">
-
 				<?php
-					/**
-					 * Fires before the membership details in edit user membership screen
-					 *
-					 * @since 1.0.0
-					 * @param WC_Memberships_User_Membership
-					 */
-					do_action( 'wc_memberships_before_user_membership_details', $user_membership );
-				?>
 
-				<?php woocommerce_wp_select( array(
+				/**
+				 * Fires before the membership details in edit user membership screen
+				 *
+				 * @since 1.0.0
+				 * @param \WC_Memberships_User_Membership
+				 */
+				do_action( 'wc_memberships_before_user_membership_details', $user_membership );
+
+
+				// plan
+				woocommerce_wp_select( array(
 					'id'      => 'post_parent',
 					'label'   => __( 'Plan:', 'woocommerce-memberships' ),
 					'options' => $membership_plan_options,
 					'value'   => $user_membership->get_plan_id(),
 					'class'   => 'wide',
 					'wrapper_class' => 'js-membership-plan',
-				) ); ?>
+				) );
 
-				<?php woocommerce_wp_select( array(
+				// status
+				woocommerce_wp_select( array(
 					'id'      => 'post_status',
 					'label'   => __( 'Status:', 'woocommerce-memberships' ),
 					'options' => $status_options,
 					'value'   => 'wcm-' . $user_membership->get_status(),
 					'class'   => 'wide',
-				) ); ?>
+				) );
 
-				<?php woocommerce_wp_text_input( array(
+				if ( 'post.php' === $pagenow ) {
+					$start_date = date( 'Y-m-d', strtotime( 'midnight', $user_membership->get_start_date( 'timestamp' ) ) );
+				} else {
+					$start_date = current_time( 'Y-m-d' );
+				}
+
+				// start date
+				woocommerce_wp_text_input( array(
 					'id'          => '_start_date',
 					'label'       => __( 'Member since:', 'woocommerce-memberships' ),
 					'class'       => 'js-user-membership-date',
 					'description' => __( 'YYYY-MM-DD', 'woocommerce-memberships' ),
-					'value'       => 'post.php' == $pagenow ? $user_membership->get_local_start_date( 'Y-m-d' ) : current_time( 'Y-m-d' ),
-				) ); ?>
+					'value'       => $start_date,
+				) );
 
-				<?php woocommerce_wp_text_input( array(
+
+				$end_date = '';
+
+				if ( null !== $user_membership->get_local_end_date( 'Y-m-d', false ) ) {
+					$end_date = date( 'Y-m-d', strtotime( 'midnight', $user_membership->get_end_date( 'timestamp', false ) ) );
+				}
+
+				$calc_end_date = '';
+
+				if ( empty( $membership_plan_options ) ) {
+					$calc_end_date = ' - <a href="#" class="js-calc-expiration">' . esc_html__( 'Update expiration date to plan length', 'woocommerce-memberships' ) . '</a>';
+				}
+
+				// end date
+				woocommerce_wp_text_input( array(
 					'id'          => '_end_date',
 					'label'       => __( 'Expires:', 'woocommerce-memberships' ),
 					'class'       => 'js-user-membership-date',
-					'description' => __( 'YYYY-MM-DD', 'woocommerce-memberships' ) . (
-						empty( $membership_plan_options )
-							? ''
-							:  ' - <a href="#" class="js-calc-expiration">' . esc_html__( 'Update expiration date to plan length', 'woocommerce-memberships' ) . '</a>'
-						),
-					'value'       => ! is_null( $user_membership->get_local_end_date( 'Y-m-d', false ) ) ? $user_membership->get_local_end_date( 'Y-m-d', false ) : '',
-				) ); ?>
+					'description' => __( 'YYYY-MM-DD', 'woocommerce-memberships' ) . ' ' . $calc_end_date,
+					'value'       => $end_date,
+				) );
 
-				<?php if ( $paused_date = $user_membership->get_local_paused_date( 'timestamp' ) ) : ?>
+				if ( $paused_date = $user_membership->get_local_paused_date( 'timestamp' ) ) :
 
+					?>
 					<p class="form-field">
-						<span class="description"><?php /* translators: %s - date */
+						<span class="description"><?php
+							/* translators: Placeholder: %s - date since the membership was paused */
 							printf( __( 'Paused since %s', 'woocommerce-memberships' ), date_i18n( wc_date_format(), $paused_date ) ); ?>
 						</span>
 					</p>
+					<?php
 
-				<?php endif; ?>
+				endif;
 
-				<?php
-					/**
-					 * Fires after the membership details in edit user membership screen
-					 *
-					 * @since 1.0.0
-					 * @param WC_Memberships_User_Membership
-					 */
-					do_action( 'wc_memberships_after_user_membership_details', $user_membership );
+
+				/**
+				 * Fires after the membership details in edit user membership screen
+				 *
+				 * @since 1.0.0
+				 * @param \WC_Memberships_User_Membership
+				 */
+				do_action( 'wc_memberships_after_user_membership_details', $user_membership );
+
 				?>
-
 			</div>
 
 		</div>
@@ -399,48 +421,49 @@ class WC_Memberships_Meta_Box_User_Membership_Data extends WC_Memberships_Meta_B
 	 *
 	 * @since 1.0.0
 	 * @param int $post_id
-	 * @param WP_Post $post
+	 * @param \WP_Post $post
 	 */
 	public function update_data( $post_id, WP_Post $post ) {
 
 		$user_membership = wc_memberships_get_user_membership( $post );
 		$date_format     = 'Y-m-d H:i:s';
+		$start_date      = '';
+		$end_date        = '';
 
-		// Update start date
-		$start_date = isset( $_POST['_start_date'] ) && $_POST['_start_date']
-								? date( $date_format, strtotime( $_POST['_start_date'] ) )
-								: '';
+		if ( ! empty( $_POST['_start_date'] ) ) {
+			$start_date = date( $date_format, strtotime( $_POST['_start_date'] ) );
+		}
 
-		// convert start date to UTC
-		$start_date = wc_memberships()->adjust_date_by_timezone( $start_date, $date_format, wc_timezone_string() );
+		// update the start date (UTC)
+		$user_membership->set_start_date( $start_date );
 
-		update_post_meta( $post_id, '_start_date', $start_date );
-
-		// Update end date - assume it was entered in the site's timezone
-		$end_date = isset( $_POST['_end_date'] ) && $_POST['_end_date']
-								? date( $date_format, strtotime( $_POST['_end_date'] ) )
-								: '';
-
-		// convert end date to UTC
-		$end_date = ! empty( $end_date ) ? wc_memberships()->adjust_date_by_timezone( $end_date, $date_format, wc_timezone_string() ) : '';
+		if ( ! empty( $_POST['_end_date'] ) ) {
+			$end_date = date( $date_format, strtotime( $_POST['_end_date'] ) );
+		}
 
 		// get previous end date (UTC)
 		$previous_end_date = $user_membership->get_end_date( $date_format );
 
-		// If end date was set to a past date, automatically set status to expired
+		// maybe adjust the end date or status according to a previous end date
 		if ( ! empty( $end_date ) && $previous_end_date != $end_date && strtotime( $end_date ) <= current_time( 'timestamp', true ) ) {
-			$user_membership->update_status( 'expired' );
-		}
-		// If the end date has not changed, but status has been changed to one of the active statuses,
-		// remove the end date, so that it does not conflict with the status
-		else if ( $previous_end_date == $end_date && strtotime( $end_date ) <= current_time( 'timestamp', true ) ) {
 
-			if ( in_array( $user_membership->get_status(), array( 'active', 'free_trial', 'complimentary' ) ) ) {
+			// if previous end date was set to a past date,
+			// automatically set status to expired
+			$user_membership->update_status( 'expired' );
+
+		} elseif ( $previous_end_date == $end_date && strtotime( $end_date ) <= current_time( 'timestamp', true ) ) {
+
+			// if the end date has not changed compared to previous,
+			// but status has been changed to one of the active statuses,
+			// remove the end date, so that it does not conflict with the status
+			if ( in_array( $user_membership->get_status(), array( 'active', 'free_trial', 'complimentary' ), true ) ) {
 				$end_date = '';
 			}
-		}
-		// If the status was set to expired, make sure that end date is in the past or at least now
-		else if ( strtotime( $end_date ) > current_time( 'timestamp' ) && 'expired' == $user_membership->get_status() ) {
+
+		} elseif ( strtotime( $end_date ) > current_time( 'timestamp' ) && 'expired' === $user_membership->get_status() ) {
+
+			// if the status was set to expired,
+			// make sure that end date is in the past or at least now
 			$end_date = date( $date_format, strtotime( 'midnight', current_time( 'timestamp', true ) ) );
 		}
 

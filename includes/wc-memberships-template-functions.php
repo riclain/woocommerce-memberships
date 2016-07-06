@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 
 /**
@@ -54,12 +54,12 @@ if ( ! function_exists( 'wc_memberships_restrict' ) ) {
 	 *
 	 * @since 1.0.0
 	 * @param string $content
-	 * @param string|int|array $plans Optional. The membership plan or plans to check against.
-	 *                                Accepts a plan slug, ID, or an array of slugs or IDs. Default: all plans.
+	 * @param string|int|array $membership_plans Optional: the membership plan or plans to check against,
+	 *                                            Accepts a plan slug, id, or an array of slugs or IDs. Default: all plans
 	 * @param string $delay
 	 * @param bool $exclude_trial
 	 */
-	function wc_memberships_restrict( $content, $plans = null, $delay = null, $exclude_trial = false ) {
+	function wc_memberships_restrict( $content, $membership_plans = null, $delay = null, $exclude_trial = false ) {
 
 		$has_access   = false;
 		$member_since = null;
@@ -70,15 +70,16 @@ if ( ! function_exists( 'wc_memberships_restrict' ) ) {
 			$has_access = true;
 		}
 
-		// Convert to an array in all cases
-		$plans = (array) $plans;
+		// convert to an array in all cases
+		$membership_plans = (array) $membership_plans;
 
 		// default to use all plans if no plan is specified
-		if ( empty( $plans ) ) {
-			$plans = wc_memberships_get_membership_plans();
+		if ( empty( $membership_plans ) ) {
+			$membership_plans = wc_memberships_get_membership_plans();
 		}
 
-		foreach ( $plans as $plan_id_or_slug ) {
+		foreach ( $membership_plans as $plan_id_or_slug ) {
+
 			$membership_plan = wc_memberships_get_membership_plan( $plan_id_or_slug );
 
 			if ( $membership_plan && wc_memberships_is_user_active_member( get_current_user_id(), $membership_plan->get_id() ) ) {
@@ -90,7 +91,7 @@ if ( ! function_exists( 'wc_memberships_restrict' ) ) {
 				}
 
 				// Determine the earliest membership for the user
-				$user_membership = wc_memberships()->user_memberships->get_user_membership( get_current_user_id(), $membership_plan->get_id() );
+				$user_membership = wc_memberships()->get_user_memberships_instance()->get_user_membership( get_current_user_id(), $membership_plan->get_id() );
 
 				// Create a pseudo-rule to help applying filters
 				$rule = new WC_Memberships_Membership_Plan_Rule( array(
@@ -106,7 +107,7 @@ if ( ! function_exists( 'wc_memberships_restrict' ) ) {
 					$from_time = current_time( 'timestamp', true );
 				}
 
-				if ( is_null( $member_since ) || $from_time < $member_since ) {
+				if ( null === $member_since || $from_time < $member_since ) {
 					$member_since = $from_time;
 				}
 			}
@@ -123,7 +124,7 @@ if ( ! function_exists( 'wc_memberships_restrict' ) ) {
 				$parts  = explode( ' ', $delay );
 				$amount = isset( $parts[1] ) ? (int) $parts[0] : '';
 
-				$access_time = wc_memberships()->add_months( $member_since, $amount );
+				$access_time = wc_memberships_add_months_to_timestamp( $member_since, $amount );
 
 			} else if ( $delay ) {
 
@@ -140,11 +141,11 @@ if ( ! function_exists( 'wc_memberships_restrict' ) ) {
 
 				$message = __( 'This content is part of your membership, but not yet! You will gain access on {date}', 'woocommerce-memberships' );
 
-				// Apply the deprecated filter
+				// apply the deprecated filter
 				if ( has_filter( 'get_content_delayed_message' ) ) {
 					/** This filter is documented in includes/frontend/class-wc-memberships-frontend.php **/
 					$message = apply_filters( 'get_content_delayed_message', $message, null, $access_time );
-					// Notify developers that this filter is deprecated
+					// notify developers that this filter is deprecated
 					_deprecated_function( 'The get_content_delayed_message filter', '1.3.1', 'wc_memberships_get_content_delayed_message' );
 				}
 
@@ -163,6 +164,7 @@ if ( ! function_exists( 'wc_memberships_restrict' ) ) {
 
 		}
 	}
+
 }
 
 
@@ -172,17 +174,18 @@ if ( ! function_exists( 'wc_memberships_is_post_content_restricted' ) ) {
 	 * Check if a post/page content is restricted
 	 *
 	 * @since 1.0.0
-	 * @param int $post_id Optional. Defaults to current post
-	 * @return bool True, if content has restriction rules, false otherwise
+	 * @param int|null $post_id Optional, defaults to current post
+	 * @return bool
 	 */
 	function wc_memberships_is_post_content_restricted( $post_id = null ) {
 
 		if ( ! $post_id ) {
 			global $post;
+
 			$post_id = isset( $post->ID ) ? $post->ID : false;
 		}
 
-		$rules = $post_id ? wc_memberships()->rules->get_post_content_restriction_rules( $post_id ) : '';
+		$rules = $post_id ? wc_memberships()->get_rules_instance()->get_post_content_restriction_rules( $post_id ) : '';
 
 		return ! empty( $rules );
 	}
@@ -196,24 +199,25 @@ if ( ! function_exists( 'wc_memberships_is_product_viewing_restricted' ) ) {
 	 * Check if viewing a product is restricted
 	 *
 	 * @since 1.0.0
-	 * @param int $post_id Optional. Defaults to current post
-	 * @return bool True, if product viewing is restricted, false otherwise
+	 * @param int|null $post_id Optional, defaults to current post
+	 * @return bool
 	 */
 	function wc_memberships_is_product_viewing_restricted( $post_id = null ) {
 
 		if ( ! $post_id ) {
 			global $post;
+
 			$post_id = $post->ID;
 		}
 
-		$rules = wc_memberships()->rules->get_the_product_restriction_rules( $post_id );
+		$rules = wc_memberships()->get_rules_instance()->get_the_product_restriction_rules( $post_id );
 		$is_restricted = false;
 
 		if ( ! empty( $rules ) ) {
 
 			foreach ( $rules as $rule ) {
 
-				if ( 'view' == $rule->get_access_type() ) {
+				if ( 'view' === $rule->get_access_type() ) {
 					$is_restricted = true;
 				}
 			}
@@ -231,31 +235,32 @@ if ( ! function_exists( 'wc_memberships_is_product_purchasing_restricted' ) ) {
 	 * Check if purchasing a product is restricted
 	 *
 	 * @since 1.0.0
-	 * @param int $post_id Optional. Defaults to current post
-	 * @return bool True, if product purchasing is restricted, false otherwise
+	 * @param int|null $post_id Optional, defaults to current post
+	 * @return bool
 	 */
 	function wc_memberships_is_product_purchasing_restricted( $post_id = null ) {
 
 		if ( ! $post_id ) {
 			global $post;
+
 			$post_id = $post->ID;
 		}
 
-		$rules = wc_memberships()->rules->get_the_product_restriction_rules( $post_id );
+		$rules = wc_memberships()->get_rules_instance()->get_the_product_restriction_rules( $post_id );
 
-		$is_resticted = false;
+		$is_restricted = false;
 
 		if ( ! empty( $rules ) ) {
 
 			foreach ( $rules as $rule ) {
 
-				if ( 'purchase' == $rule->get_access_type() ) {
-					$is_resticted = true;
+				if ( 'purchase' === $rule->get_access_type() ) {
+					$is_restricted = true;
 				}
 			}
 		}
 
-		return $is_resticted;
+		return $is_restricted;
 	}
 
 }
@@ -267,19 +272,20 @@ if ( ! function_exists( 'wc_memberships_product_has_member_discount' ) ) {
 	 * Check if the product (or current product) has any member discounts
 	 *
 	 * @since 1.0.0
-	 * @param int $product_id Product ID. Optional, defaults to current product.
-	 * @return boolean True, if is elgibile for discount, false otherwise
+	 * @param int|null $product_id Product ID: optional, defaults to current product
+	 * @return bool
 	 */
 	function wc_memberships_product_has_member_discount( $product_id = null ) {
 
 		if ( ! $product_id ) {
-
 			global $product;
+
 			$product_id = $product->id;
 		}
 
-		return wc_memberships()->rules->product_has_member_discount( $product_id );
+		return wc_memberships()->get_rules_instance()->product_has_member_discount( $product_id );
 	}
+
 }
 
 
@@ -289,8 +295,8 @@ if ( ! function_exists( 'wc_memberships_user_has_member_discount' ) ) {
 	 * Check if the current user is eligible for member discount for the current product
 	 *
 	 * @since 1.0.0
-	 * @param int $product_id Product ID. Optional, defaults to current product.
-	 * @return boolean True, if is elgibile for discount, false otherwise
+	 * @param int|null $product_id Product ID: optional, defaults to current product
+	 * @return bool
 	 */
 	function wc_memberships_user_has_member_discount( $product_id = null ) {
 
@@ -299,19 +305,19 @@ if ( ! function_exists( 'wc_memberships_user_has_member_discount' ) ) {
 		}
 
 		if ( ! $product_id ) {
-
 			global $product;
+
 			$product_id = $product->id;
 		}
 
 		$product      = wc_get_product( $product_id );
 		$user_id      = get_current_user_id();
-		$has_discount = wc_memberships()->rules->user_has_product_member_discount( $user_id, $product_id );
+		$has_discount = wc_memberships()->get_rules_instance()->user_has_product_member_discount( $user_id, $product_id );
 
 		if ( ! $has_discount && $product->has_child() ) {
 			foreach ( $product->get_children( true ) as $child_id ) {
 
-				$has_discount = wc_memberships()->rules->user_has_product_member_discount( $user_id, $child_id );
+				$has_discount = wc_memberships()->get_rules_instance()->user_has_product_member_discount( $user_id, $child_id );
 
 				if ( $has_discount ) {
 					break;
@@ -324,27 +330,6 @@ if ( ! function_exists( 'wc_memberships_user_has_member_discount' ) ) {
 }
 
 
-if ( ! function_exists( 'wc_memberships_user_can') ) {
-
-	/**
-	 * Check if a product is accessible (viewable or purchaseable)
-	 *
-	 * TODO for now $target only supports 'post' => id or 'product' => id
-	 *
-	 * @since 1.4.0
-	 * @param int $user_id User to check if has access
-	 * @param string|array Type of capabilities: 'view', 'purchase' (products only)
-	 * @param array $target Associative array of content type and content id to access to
-	 * @param int|string UTC timestamp to compare for content access (optional, defaults to now)
-	 * @return bool|null
-	 */
-	function wc_memberships_user_can( $user_id, $action, $target, $when = '' ) {
-		return wc_memberships()->capabilities->user_can( $user_id, $action, $target, $when );
-	}
-
-}
-
-
 if ( ! function_exists( 'wc_memberships_get_user_access_time' ) ) {
 
 	/**
@@ -352,7 +337,7 @@ if ( ! function_exists( 'wc_memberships_get_user_access_time' ) ) {
 	 *
 	 * Returns the time in local time (according to site timezone)
 	 *
-	 * TODO for now $target only supports 'post' => id or 'product' => id
+	 * TODO for now $target only supports 'post' => id or 'product' => id  {FN 2016-04-26}
 	 *
 	 * @since 1.4.0
 	 * @param int $user_id User to get access time for
@@ -363,10 +348,10 @@ if ( ! function_exists( 'wc_memberships_get_user_access_time' ) ) {
 	 */
 	function wc_memberships_get_user_access_start_time( $user_id, $action, $target, $gmt = false ) {
 
-		$access_time = wc_memberships()->capabilities->get_user_access_start_time_for_post( $user_id, reset( $target ), $action );
+		$access_time = wc_memberships()->get_capabilities_instance()->get_user_access_start_time_for_post( $user_id, reset( $target ), $action );
 
-		if ( ! is_null( $access_time ) ) {
-			return ! $gmt ? wc_memberships()->adjust_date_by_timezone( $access_time, 'timestamp' ) : $access_time;
+		if ( null !== $access_time ) {
+			return ! $gmt ? wc_memberships_adjust_date_by_timezone( $access_time, 'timestamp' ) : $access_time;
 		}
 
 		return null;
@@ -385,6 +370,7 @@ if ( ! function_exists( 'wc_memberships_show_product_loop_member_discount_badge'
 	function wc_memberships_show_product_loop_member_discount_badge() {
 		wc_get_template( 'loop/member-discount-badge.php' );
 	}
+
 }
 
 
@@ -398,6 +384,7 @@ if ( ! function_exists( 'wc_memberships_show_product_member_discount_badge' ) ) 
 	function wc_memberships_show_product_member_discount_badge() {
 		wc_get_template( 'single-product/member-discount-badge.php' );
 	}
+
 }
 
 
@@ -407,12 +394,12 @@ if ( ! function_exists( 'wc_memberships_get_member_product_discount' ) ) {
 	 * Get member product discount
 	 *
 	 * @since 1.4.0
-	 * @param int|WC_Product $product
-	 * @param WC_Memberships_User_Membership $customer_membership
-	 * @return string Member discount
+	 * @param \WC_Memberships_User_Membership $user_membership The user membership object
+	 * @param int|\WC_Product $product The product object or id to get discount for
+	 * @return string
 	 */
-	function wc_memberships_get_member_product_discount( $customer_membership, $product ) {
-		return $customer_membership->get_plan()->get_product_discount( $product );
+	function wc_memberships_get_member_product_discount( $user_membership, $product ) {
+		return $user_membership->get_plan()->get_product_discount( $product );
 	}
 
 }
@@ -424,32 +411,32 @@ if ( ! function_exists( 'wc_memberships_get_members_area_url' ) ) {
 	 * Get members area URL
 	 *
 	 * @since 1.4.0
-	 * @param int|WC_Memberships_Membership_Plan $membership Object or id
-	 * @param string $members_area_section Optional, which section of the members area to point to
+	 * @param int|\WC_Memberships_Membership_Plan $membership_plan Object or id
+	 * @param string $member_area_section Optional, which section of the member area to point to
 	 * @param int|string $paged Optional, for paged sections
 	 * @return string Unescaped URL
 	 */
-	function wc_memberships_get_members_area_url( $membership, $members_area_section = '', $paged = '' ) {
+	function wc_memberships_get_members_area_url( $membership_plan, $member_area_section = '', $paged = '' ) {
 
-		$page_id       = wc_get_page_id( 'myaccount' );
-		$membership_id = is_object( $membership ) ? $membership->get_id() : (int) $membership;
+		$page_id            = wc_get_page_id( 'myaccount' );
+		$membership_plan_id = is_object( $membership_plan ) ? $membership_plan->get_id() : (int) $membership_plan;
 
-		if ( ! $page_id || ! $membership_id || 0 === $membership_id ) {
+		if ( ! $page_id || ! $membership_plan_id || 0 === $membership_plan_id ) {
 			return '';
 		}
 
-		// If unspecified, will get the first tab as set in membership plan in admin
-		if ( empty( $members_area_section ) ) {
+		// if unspecified, will get the first tab as set in membership plan in admin
+		if ( empty( $member_area_section ) ) {
 
-			$membership_plan    = is_int( $membership ) ? wc_memberships_get_membership_plan( $membership_id ) : $membership;
+			$membership_plan = is_int( $membership_plan ) ? wc_memberships_get_membership_plan( $membership_plan_id ) : $membership_plan;
 
 			if ( ! $membership_plan ) {
 				return '';
 			}
 
-			$plan_sections        = (array) $membership_plan->get_members_area_sections();
-			$available_sections   = array_intersect_key( wc_memberships_get_members_area_sections(), array_flip( $plan_sections ) );
-			$members_area_section = key( $available_sections );
+			$plan_sections       = (array) $membership_plan->get_members_area_sections();
+			$available_sections  = array_intersect_key( wc_memberships_get_members_area_sections(), array_flip( $plan_sections ) );
+			$member_area_section = key( $available_sections );
 		}
 
 		if ( ! empty( $paged ) ) {
@@ -462,14 +449,15 @@ if ( ! function_exists( 'wc_memberships_get_members_area_url' ) ) {
 			$endpoint      = get_option( 'woocommerce_myaccount_members_area_endpoint', 'members-area' );
 
 			// e.g. /my-account/members-area/123/my-membership-content/2
-			return $myaccount_url . $endpoint . '/' . $membership_id . '/' . $members_area_section . '/' . $paged;
+			return $myaccount_url . $endpoint . '/' . $membership_plan_id . '/' . $member_area_section . '/' . $paged;
 		}
 
 		// e.g. /?page_id=123&members_area=456&members_area_section=my-membership-content&members_area_section_page=2
-		return add_query_arg( array(
+		return add_query_arg(
+			array(
 				'page_id'                   => $page_id,
-				'members_area'              => $membership_id,
-				'members_area_section'      => $members_area_section,
+				'members_area'              => $membership_plan_id,
+				'members_area_section'      => $member_area_section,
 				'members_area_section_page' => $paged,
 			),
 			get_home_url()
@@ -486,8 +474,8 @@ if ( ! function_exists( 'wc_memberships_get_members_area_action_links' ) ) {
 	 *
 	 * @since 1.4.0
 	 * @param string $section Members area section to display actions for
-	 * @param WC_Memberships_User_Membership $user_membership
-	 * @param WC_Product|WP_Post|object $object An object to pass to a filter hook (optional)
+	 * @param \WC_Memberships_User_Membership $user_membership
+	 * @param \WC_Product|\WP_Post|object $object An object to pass to a filter hook (optional)
 	 * @return string Action links HTML
 	 */
 	function wc_memberships_get_members_area_action_links( $section, $user_membership, $object ) {
@@ -516,8 +504,8 @@ if ( ! function_exists( 'wc_memberships_get_members_area_action_links' ) ) {
 					);
 				}
 
-				// View: Do not show for cancelled, paused memberships or memberships without a Members Area
-				if ( ! $user_membership->is_paused() && ! $user_membership->is_cancelled() && ! empty ( $members_area ) && is_array( $members_area ) ) {
+				// View: Do not show for cancelled, expired, paused memberships, or memberships without a Members Area
+				if ( ! $user_membership->is_paused() && ! $user_membership->is_cancelled() && ! $user_membership->is_expired() && ! empty ( $members_area ) && is_array( $members_area ) ) {
 					$default_actions['view'] = array(
 						'url' => wc_memberships_get_members_area_url( $user_membership->get_plan_id(), $members_area[0] ),
 						'name' => __( 'View', 'woocommerce-memberships' ),
@@ -566,12 +554,12 @@ if ( ! function_exists( 'wc_memberships_get_members_area_action_links' ) ) {
 		 *
 		 * @since 1.4.0
 		 * @param array $default_actions Associative array of actions
-		 * @param WC_Memberships_User_Membership $user_membership User Membership object
-		 * @param WC_Product|WP_Post|object $object Current object where the action is run (optional)
+		 * @param \WC_Memberships_User_Membership $user_membership User Membership object
+		 * @param \WC_Product|\WP_Post|object $object Current object where the action is run (optional)
 		 */
 		$actions = apply_filters( "wc_memberships_members_area_{$section}_actions", $default_actions, $user_membership, $object );
 
-		// Can be removed once we no longer support the hook below
+		// can be removed once we no longer support the hook below
 		if ( 'my-memberships' === $section ) {
 
 			/**
@@ -580,7 +568,7 @@ if ( ! function_exists( 'wc_memberships_get_members_area_action_links' ) ) {
 			 * @since 1.0.0
 			 * @deprecated since 1.4.0
 			 * @param array $actions
-			 * @param WC_Memberships_User_Membership $membership
+			 * @param \WC_Memberships_User_Membership $membership
 			 */
 			$actions = apply_filters( 'wc_memberships_my_account_my_memberships_actions', $actions, $user_membership );
 		}
@@ -588,7 +576,9 @@ if ( ! function_exists( 'wc_memberships_get_members_area_action_links' ) ) {
 		$links = '';
 
 		if ( ! empty( $actions ) ) {
+
 			foreach ( $actions as $key => $action ) {
+
 				$links .= '<a href="' . esc_url( $action['url'] ) . '" class="button ' . sanitize_html_class( $key ) . '">' . esc_html( $action['name'] ) . '</a> ';
 			}
 		}
@@ -606,40 +596,39 @@ if ( ! function_exists( 'wc_memberships_get_members_area_page_links' ) ) {
 	 *
 	 * @since 1.4.0
 	 * @param string $section Members Area section
-	 * @param int|WC_Memberships_Membership_Plan $membership Membership
-	 * @param WP_Query|WP_Comment_Query $query Current query
+	 * @param int|\WC_Memberships_Membership_Plan $membership_plan Membership
+	 * @param \WP_Query|\WP_Comment_Query $query Current query
 	 * @return string HTML or empty output if query is not paged
 	 */
-	function wc_memberships_get_members_area_page_links( $membership, $section, $query ) {
+	function wc_memberships_get_members_area_page_links( $membership_plan, $section, $query ) {
 
 		$links = '';
 
-		if ( $max_pages = $query->max_num_pages > 1 ) {
+		if ( $max_pages = (int) $query->max_num_pages > 1 ) {
 
-			$current_page = $query->get( 'paged' );
+			$current_page = (int) $query->get( 'paged' );
 
-			if ( is_int( $membership ) ) {
-				$membership = wc_memberships_get_membership_plan( $membership );
+			if ( is_int( $membership_plan ) ) {
+				$membership_plan = wc_memberships_get_membership_plan( $membership_plan );
 			}
 
-			if ( $membership ) {
+			if ( $membership_plan ) {
 
 				// l10n for rtl text direction
 				$left  = is_rtl() ? 'right' : 'left';
-				$right = is_rtl() ? 'left' : 'right';
+				$right = is_rtl() ? 'left'  : 'right';
 
 				if ( 1 === $current_page ) {
-					// First page, show next
-					$links .= '<a href="' . esc_url( wc_memberships_get_members_area_url( $membership, $section, 2 ) ). '" class="wc-memberships-members-area-page-link ' . $right . '">' . esc_html__( 'Next &rarr;', 'woocommerce-memberships' ) . '</a>';
-				} elseif ( $max_pages == $current_page ) {
-					// Last page, show prev
-					$links .= '<a href="' . esc_url( wc_memberships_get_members_area_url( $membership, $section, $current_page - 1 ) ) . '" class="wc-memberships-members-area-page-link ' . $left . '">' . esc_html__( '&larr; Previous', 'woocommerce-memberships' ) . '</a>';
+					// first page, show next
+					$links .= '<a href="' . esc_url( wc_memberships_get_members_area_url( $membership_plan, $section, 2 ) ). '" class="wc-memberships-members-area-page-link ' . $right . '">' . esc_html__( 'Next &rarr;', 'woocommerce-memberships' ) . '</a>';
+				} elseif ( (int) $max_pages === $current_page ) {
+					// last page, show prev
+					$links .= '<a href="' . esc_url( wc_memberships_get_members_area_url( $membership_plan, $section, $current_page - 1 ) ) . '" class="wc-memberships-members-area-page-link ' . $left . '">' . esc_html__( '&larr; Previous', 'woocommerce-memberships' ) . '</a>';
 				} else {
-					// In the middle of pages, show both
-					$links .= '<a href="' . esc_url( wc_memberships_get_members_area_url( $membership, $section, $current_page - 1 ) ) . '" class="wc-memberships-members-area-page-link ' . $left . '">' . esc_html__( '&larr; Previous', 'woocommerce-memberships' ) . '</a>';
-					$links .= '<a href="' . esc_url( wc_memberships_get_members_area_url( $membership, $section, $current_page + 1 ) ) . '" class="wc-memberships-members-area-page-link ' . $right . '">' . esc_html__( 'Next &rarr;', 'woocommerce-memberships' ) . '</a>';
+					// in the middle of pages, show both
+					$links .= '<a href="' . esc_url( wc_memberships_get_members_area_url( $membership_plan, $section, $current_page - 1 ) ) . '" class="wc-memberships-members-area-page-link ' . $left . '">' . esc_html__( '&larr; Previous', 'woocommerce-memberships' ) . '</a>';
+					$links .= '<a href="' . esc_url( wc_memberships_get_members_area_url( $membership_plan, $section, $current_page + 1 ) ) . '" class="wc-memberships-members-area-page-link ' . $right . '">' . esc_html__( 'Next &rarr;', 'woocommerce-memberships' ) . '</a>';
 				}
-
 			}
 		}
 

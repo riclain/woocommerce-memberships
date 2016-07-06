@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Memberships Post Types class
@@ -206,10 +206,6 @@ class WC_Memberships_Post_Types {
 	 */
 	public static function updated_messages( $messages ) {
 
-		$post             = get_post();
-		$post_type        = get_post_type( $post );
-		$post_type_object = get_post_type_object( $post_type );
-
 		$messages['wc_membership_plan'] = array(
 			0  => '', // Unused. Messages start at index 1.
 			1  => __( 'Membership Plan saved.', 'woocommerce-memberships' ),
@@ -281,11 +277,11 @@ class WC_Memberships_Post_Types {
 	 */
 	public static function maybe_remove_meta_boxes( $post_type ) {
 
-		if ( ! in_array( $post_type, array( 'wc_membership_plan', 'wc_user_membership' ) ) ) {
+		if ( ! in_array( $post_type, array( 'wc_membership_plan', 'wc_user_membership' ), true ) ) {
 			return;
 		}
 
-		$allowed_meta_box_ids = apply_filters( 'wc_memberships_allowed_meta_box_ids', array_merge( array( 'submitdiv' ), wc_memberships()->admin->get_meta_box_ids() ) );
+		$allowed_meta_box_ids = apply_filters( 'wc_memberships_allowed_meta_box_ids', array_merge( array( 'submitdiv' ), wc_memberships()->get_admin_instance()->get_meta_box_ids() ) );
 
 		$screen = get_current_screen();
 
@@ -295,7 +291,7 @@ class WC_Memberships_Post_Types {
 
 				foreach ( $meta_boxes_by_subcontext as $meta_box_id => $meta_box ) {
 
-					if ( ! in_array( $meta_box_id, $allowed_meta_box_ids ) ) {
+					if ( ! in_array( $meta_box_id, $allowed_meta_box_ids, true ) ) {
 						remove_meta_box( $meta_box_id, $post_type, $context );
 					}
 				}

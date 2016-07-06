@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Membership Capabilities class
@@ -103,8 +103,8 @@ class WC_Memberships_Capabilities {
 						break;
 					}
 
-					$rules               = wc_memberships()->rules->get_post_content_restriction_rules( $post_id );
-					$allcaps[ $caps[0] ] = wc_memberships()->rules->user_has_content_access_from_rules( $user_id, $rules, $post_id );
+					$rules               = wc_memberships()->get_rules_instance()->get_post_content_restriction_rules( $post_id );
+					$allcaps[ $caps[0] ] = wc_memberships()->get_rules_instance()->user_has_content_access_from_rules( $user_id, $rules, $post_id );
 
 				break;
 
@@ -123,8 +123,8 @@ class WC_Memberships_Capabilities {
 						break;
 					}
 
-					$rules               = wc_memberships()->rules->get_the_product_restriction_rules( $post_id );
-					$allcaps[ $caps[0] ] = wc_memberships()->rules->user_has_product_view_access_from_rules( $user_id, $rules, $post_id );
+					$rules               = wc_memberships()->get_rules_instance()->get_the_product_restriction_rules( $post_id );
+					$allcaps[ $caps[0] ] = wc_memberships()->get_rules_instance()->user_has_product_view_access_from_rules( $user_id, $rules, $post_id );
 
 				break;
 
@@ -143,8 +143,8 @@ class WC_Memberships_Capabilities {
 						break;
 					}
 
-					$rules               = wc_memberships()->rules->get_the_product_restriction_rules( $post_id );
-					$allcaps[ $caps[0] ] = wc_memberships()->rules->user_has_product_purchase_access_from_rules( $user_id, $rules, $post_id );
+					$rules               = wc_memberships()->get_rules_instance()->get_the_product_restriction_rules( $post_id );
+					$allcaps[ $caps[0] ] = wc_memberships()->get_rules_instance()->user_has_product_purchase_access_from_rules( $user_id, $rules, $post_id );
 
 				break;
 
@@ -159,8 +159,8 @@ class WC_Memberships_Capabilities {
 					$taxonomy = $args[2];
 					$term_id  = $args[3];
 
-					$rules = wc_memberships()->rules->get_taxonomy_term_product_restriction_rules( $taxonomy, $term_id );
-					$allcaps[ $caps[0] ] = wc_memberships()->rules->user_has_content_access_from_rules( $user_id, $rules, $term_id );
+					$rules               = wc_memberships()->get_rules_instance()->get_taxonomy_term_product_restriction_rules( $taxonomy, $term_id );
+					$allcaps[ $caps[0] ] = wc_memberships()->get_rules_instance()->user_has_content_access_from_rules( $user_id, $rules, $term_id );
 
 				break;
 
@@ -197,8 +197,8 @@ class WC_Memberships_Capabilities {
 					$taxonomy = $args[2];
 					$term_id  = $args[3];
 
-					$rules               = wc_memberships()->rules->get_taxonomy_term_content_restriction_rules( $taxonomy, $term_id );
-					$allcaps[ $caps[0] ] = wc_memberships()->rules->user_has_content_access_from_rules( $user_id, $rules, $term_id );
+					$rules               = wc_memberships()->get_rules_instance()->get_taxonomy_term_content_restriction_rules( $taxonomy, $term_id );
+					$allcaps[ $caps[0] ] = wc_memberships()->get_rules_instance()->user_has_content_access_from_rules( $user_id, $rules, $term_id );
 
 				break;
 
@@ -212,8 +212,8 @@ class WC_Memberships_Capabilities {
 					$user_id  = $args[1];
 					$taxonomy = $args[2];
 
-					$rules               = wc_memberships()->rules->get_taxonomy_content_restriction_rules( $taxonomy );
-					$allcaps[ $caps[0] ] = wc_memberships()->rules->user_has_content_access_from_rules( $user_id, $rules );
+					$rules               = wc_memberships()->get_rules_instance()->get_taxonomy_content_restriction_rules( $taxonomy );
+					$allcaps[ $caps[0] ] = wc_memberships()->get_rules_instance()->user_has_content_access_from_rules( $user_id, $rules );
 
 				break;
 
@@ -229,17 +229,17 @@ class WC_Memberships_Capabilities {
 
 					if ( in_array( $post_type, array( 'product', 'product_variation' ) ) ) {
 
-						$rules = wc_memberships()->rules->get_product_restriction_rules( array(
+						$rules = wc_memberships()->get_rules_instance()->get_product_restriction_rules( array(
 							'content_type'      => 'post_type',
 							'content_type_name' => 'product',
 						) );
 
-						$allcaps[ $caps[0] ] = wc_memberships()->rules->user_has_product_view_access_from_rules( $user_id, $rules );
+						$allcaps[ $caps[0] ] = wc_memberships()->get_rules_instance()->user_has_product_view_access_from_rules( $user_id, $rules );
 
 					} else {
 
-						$rules = wc_memberships()->rules->get_post_type_content_restriction_rules( $post_type );
-						$allcaps[ $caps[0] ] = wc_memberships()->rules->user_has_content_access_from_rules( $user_id, $rules );
+						$rules               = wc_memberships()->get_rules_instance()->get_post_type_content_restriction_rules( $post_type );
+						$allcaps[ $caps[0] ] = wc_memberships()->get_rules_instance()->user_has_content_access_from_rules( $user_id, $rules );
 					}
 
 				break;
@@ -366,7 +366,7 @@ class WC_Memberships_Capabilities {
 					$rule_id  = $args[2];
 					$can_edit = false;
 
-					$rule = wc_memberships()->rules->get_rule( $rule_id );
+					$rule = wc_memberships()->get_rules_instance()->get_rule( $rule_id );
 
 					if ( $rule ) {
 
@@ -603,14 +603,15 @@ class WC_Memberships_Capabilities {
 		// Only calculate access time if not cached before, speeds up subsequent checks
 		if ( ! isset( $this->_user_access_start_time[ $cache_key ] ) ) {
 
-			$access_time = current_time( 'timestamp', true ); // by default, access is immediate
-			$access_type = $args['access_type'];
+			$access_time   = current_time( 'timestamp', true ); // by default, access is immediate
+			$inactive_time = 0;
+			$access_type   = $args['access_type'];
 
 			$rules_args = $args;
 			unset( $rules_args['access_type'] );
 			unset( $rules_args['user_id'] );
 
-			$rules = wc_memberships()->rules->get_rules( $rules_args );
+			$rules = wc_memberships()->get_rules_instance()->get_rules( $rules_args );
 
 			// If rules apply, process them
 			if ( ! empty( $rules ) ) {
@@ -643,76 +644,77 @@ class WC_Memberships_Capabilities {
 							break;
 						}
 					}
-
 				}
 
-
-				// If access is restricted, determine if user has access and if, then when
+				// if access is restricted, determine if user has access
+				// and if he/she has, determine beginning from when
 				if ( ! $access_time ) {
 
 					$last_priority = 0;
 
 					foreach ( $rules as $rule ) {
 
+						// by default any rule applies
 						$rule_applies = true;
 
-						// Check if rule applies to this piece of content, based on the access type
-						// This affects products only.
-						if ( 'product_restriction' == $rule->get_rule_type() ) {
+						// check if rule applies to products, based on the access type
+						if ( 'product_restriction' === $rule->get_rule_type() ) {
 
-							$rule_applies = ( 'view' == $access_type )
-								? in_array( $rule->get_access_type(), array( 'view', 'purchase' ) )
-								: $access_type == $rule->get_access_type();
+							if ( 'view' === $access_type ) {
+								$rule_applies = in_array( $rule->get_access_type(), array( 'view', 'purchase' ), true );
+							} else {
+								$rule_applies = $access_type === $rule->get_access_type();
+							}
 						}
 
-						if ( $rule_applies && wc_memberships()->user_memberships->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
+						if ( $rule_applies && wc_memberships()->get_user_memberships_instance()->is_user_active_member( $user_id, $rule->get_membership_plan_id() ) ) {
 
-							$user_membership = wc_memberships()->user_memberships->get_user_membership( $user_id, $rule->get_membership_plan_id() );
+							$user_membership = wc_memberships()->get_user_memberships_instance()->get_user_membership( $user_id, $rule->get_membership_plan_id() );
 
 							/**
 							 * Filter the rule's content 'access from' time for a user membership
 							 *
-							 * The 'access from' time is used as the base time for calculating the access
-							 * start time for scheduled content.
+							 * The 'access from' time is used as the base time for calculating
+							 * the access start time for scheduled content
 							 *
 							 * @since 1.0.0
-							 * @param string $from_time Access from time, as a timestamp
-							 * @param WC_Memberships_Membership_Plan_Rule $rule
-							 * @param WC_Memberships_User_Membership $user_membership
+							 * @param int $from_time Access from time, as a timestamp
+							 * @param \WC_Memberships_Membership_Plan_Rule $rule
+							 * @param \WC_Memberships_User_Membership $user_membership
 							 */
 							$from_time = apply_filters( 'wc_memberships_access_from_time', $user_membership->get_start_date( 'timestamp' ), $rule, $user_membership );
 
-							// If there is no time to calculate the access time from, simply
-							// use the current time as access start time
+							// if there is no time to calculate the access time from,
+							// simply use the current time as access start time
 							if ( ! $from_time ) {
 								$access_time = current_time( 'timestamp', true );
-								break; // Can't get any earlier, break the loop
+								break;
 							}
 
+							$inactive_time    = $user_membership->get_total_inactive_time();
 							$rule_access_time = $rule->get_access_start_time( $from_time );
 							$rule_priority    = $rule->get_priority();
 
-							// If this rule has higher priority than last rule,
-							// override the previous access time.
-							// If this has the same priority as the last rule,
-							// and grants earlier access, override previous access time.
-							if ( $rule_priority > $last_priority || $rule_priority == $last_priority && ( ! $access_time || $rule_access_time < $access_time ) ) {
+							// - If this rule has higher priority than last rule,
+							// override the previous access time
+							// - If this has the same priority as the last rule,
+							// and grants earlier access, override previous access time
+							if ( $rule_priority > $last_priority
+							     || ( $rule_priority === $last_priority && ( ! $access_time || $rule_access_time < $access_time ) ) ) {
 
 								$access_time   = $rule_access_time;
 								$last_priority = $rule_priority;
 							}
-
 						}
 					}
 				}
-
 			}
 
 			/**
 			 * Filter user's access start time to a piece of content
 			 *
 			 * @since 1.0.0
-			 * @param string $access_time Access start timestamp
+			 * @param int $access_time Access start timestamp
 			 * @param array $args {
 			 *   An array of arguments.
 			 *
@@ -722,10 +724,9 @@ class WC_Memberships_Capabilities {
 			 *   @type string $access_type
 			 * }
 			 */
-			$access_time = apply_filters( 'wc_memberships_user_object_access_start_time', $access_time, $args );
+			$access_time = (int) apply_filters( 'wc_memberships_user_object_access_start_time', $access_time, $args );
 
-			$this->_user_access_start_time[ $cache_key ] = $access_time;
-
+			$this->_user_access_start_time[ $cache_key ] = $access_time + $inactive_time;
 		}
 
 		return $this->_user_access_start_time[ $cache_key ];
@@ -735,7 +736,7 @@ class WC_Memberships_Capabilities {
 	/**
 	 * Check if a post (post type or product) is accessible (viewable or purchaseable)
 	 *
-	 * TODO for now $target only supports 'post' => id or 'product' => id
+	 * TODO for now $target only supports 'post' => id or 'product' => id  {FN 2016-04-26}
 	 * having an array can be more future proof compatible if we decide to check for other content types
 	 * such as taxonomies, terms, etc.
 	 *

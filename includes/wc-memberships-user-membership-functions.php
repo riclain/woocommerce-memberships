@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 
 /**
@@ -36,10 +36,10 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @since 1.0.0
  * @param mixed $id Optional. Post object or post ID of the user membership, or user ID
  * @param mixed $plan Optional. Membership Plan slug, post object or related post ID
- * @return WC_Memberships_User_Membership
+ * @return \WC_Memberships_User_Membership|false The User Membership or false if not found
  */
 function wc_memberships_get_user_membership( $id = null, $plan = null ) {
-	return wc_memberships()->user_memberships->get_user_membership( $id, $plan );
+	return wc_memberships()->get_user_memberships_instance()->get_user_membership( $id, $plan );
 }
 
 
@@ -50,7 +50,7 @@ function wc_memberships_get_user_membership( $id = null, $plan = null ) {
  * @return array
  */
 function wc_memberships_get_user_membership_statuses() {
-	return wc_memberships()->user_memberships->get_user_membership_statuses();
+	return wc_memberships()->get_user_memberships_instance()->get_user_membership_statuses();
 }
 
 
@@ -64,7 +64,7 @@ function wc_memberships_get_user_membership_statuses() {
 function wc_memberships_get_user_membership_status_name( $status ) {
 
 	$statuses = wc_memberships_get_user_membership_statuses();
-	$status   = 'wcm-' === substr( $status, 0, 4 ) ? substr( $status, 4 ) : $status;
+	$status   = 0 === strpos( $status, 'wcm-' ) ? substr( $status, 4 ) : $status;
 	$status   = isset( $statuses[ 'wcm-' . $status ] ) ? $statuses[ 'wcm-' . $status ] : $status;
 
 	return is_array( $status ) && isset( $status['label'] ) ? $status['label'] : $status;
@@ -75,12 +75,12 @@ function wc_memberships_get_user_membership_status_name( $status ) {
  * Get all memberships for a user
  *
  * @since 1.0.0
- * @param int $user_id Optional. Defaults to current user.
- * @param array $args
- * @return WC_Memberships_User_Membership[]|null array of user memberships
+ * @param int $user_id Optional, defaults to current user
+ * @param array $args Optional arguments
+ * @return \WC_Memberships_User_Membership[]|null array of user memberships
  */
 function wc_memberships_get_user_memberships( $user_id = null, $args = array() ) {
-	return wc_memberships()->user_memberships->get_user_memberships( $user_id, $args );
+	return wc_memberships()->get_user_memberships_instance()->get_user_memberships( $user_id, $args );
 }
 
 
@@ -88,12 +88,12 @@ function wc_memberships_get_user_memberships( $user_id = null, $args = array() )
  * Check if user is an active member of a particular membership plan
  *
  * @since 1.0.0
- * @param int $user_id Optional. Defaults to current user.
+ * @param int $user_id Optional, defaults to current user
  * @param int|string $plan Membership Plan slug, post object or related post ID
- * @return bool True, if is an active member, false otherwise
+ * @return bool
  */
 function wc_memberships_is_user_active_member( $user_id = null, $plan ) {
-	return wc_memberships()->user_memberships->is_user_active_member( $user_id, $plan );
+	return wc_memberships()->get_user_memberships_instance()->is_user_active_member( $user_id, $plan );
 }
 
 
@@ -101,24 +101,43 @@ function wc_memberships_is_user_active_member( $user_id = null, $plan ) {
  * Check if user is a member of a particular membership plan
  *
  * @since 1.0.0
- * @param int $user_id Optional. Defaults to current user.
- * @param int|string $plan Membership Plan slug, post object or related post ID
- * @return bool True, if is a member, false otherwise
+ * @param int $user_id Optional, defaults to current user
+ * @param int|string $membership_plan Membership Plan slug, post object or related post ID
+ * @return bool
  */
-function wc_memberships_is_user_member( $user_id = null, $plan ) {
-	return wc_memberships()->user_memberships->is_user_member( $user_id, $plan );
+function wc_memberships_is_user_member( $user_id = null, $membership_plan ) {
+	return wc_memberships()->get_user_memberships_instance()->is_user_member( $user_id, $membership_plan );
+}
+
+
+/**
+ * Check if a product is accessible (viewable or purchaseable)
+ *
+ * TODO for now `$target` only supports a simple array like  'post' => id  or  'product' => id  - in future we could extend this to take arrays or different/multiple args {FN 2016-04-26}
+ *
+ * @since 1.4.0
+ * @param int $user_id User to check if has access
+ * @param string|array Type of capabilities: 'view', 'purchase' (products only)
+ * @param array $target Associative array of content type and content id to access to
+ * @param int|string UTC timestamp to compare for content access (optional, defaults to now)
+ * @return bool|null
+ */
+function wc_memberships_user_can( $user_id, $action, $target, $when = '' ) {
+	return wc_memberships()->get_capabilities_instance()->user_can( $user_id, $action, $target, $when );
 }
 
 
 /**
  * Create a new user membership programmatically
  *
- * Returns a new user membership object on success which can then be used to add additional data.
+ * Returns a new user membership object on success
+ * which can then be used to add additional data,
+ * but will return WP_Error on failure
  *
  * @since 1.3.0
  * @param array $args Array of arguments
- * @param string $action Action - either 'create' or 'renew'. When in doubt, use 'create'
- * @return WC_Memberships_User_Membership on success, WP_Error on failure
+ * @param string $action Action - either 'create' or 'renew' -- when in doubt, use 'create'
+ * @return \WC_Memberships_User_Membership|\WP_Error
  */
 function wc_memberships_create_user_membership( $args = array(), $action = 'create' ) {
 
@@ -132,7 +151,7 @@ function wc_memberships_create_user_membership( $args = array(), $action = 'crea
 
 	$args = wp_parse_args( $args, $defaults );
 
-	$data	= array(
+	$data = array(
 		'post_parent'    => $args['plan_id'],
 		'post_author'    => $args['user_id'],
 		'post_type'      => 'wc_user_membership',
@@ -165,13 +184,12 @@ function wc_memberships_create_user_membership( $args = array(), $action = 'crea
 		$user_membership_id = wp_insert_post( $data );
 	}
 
-	// Bail out on error
+	// bail out on error
 	if ( is_wp_error( $user_membership_id ) ) {
 		return $user_membership_id;
 	}
 
-
-	// Save/update product and order id that granted access
+	// save/update product and order id that granted access
 	if ( $args['product_id'] > 0 ) {
 		update_post_meta( $user_membership_id, '_product_id', $args['product_id'] );
 	}
@@ -180,29 +198,31 @@ function wc_memberships_create_user_membership( $args = array(), $action = 'crea
 		update_post_meta( $user_membership_id, '_order_id',   $args['order_id'] );
 	}
 
-
-	// Save/update the membership start date, but only if the membership
-	// is not active, ie is not being renewed early.
-	if ( 'renew' != $action ) {
+	// save or update the membership start date,
+	// but only if the membership is not active,
+	// ie is not being renewed early
+	if ( 'renew' !== $action ) {
 		update_post_meta( $user_membership_id, '_start_date', current_time( 'mysql', true ) );
 	}
 
-	// Get the membership plan object so we can calculate end time
-	$plan = wc_memberships_get_membership_plan( $args['plan_id'] );
+	// get the membership plan object so we can calculate end time
+	$membership_plan = wc_memberships_get_membership_plan( $args['plan_id'] );
 
-	// Calculate membership end date based on membership length, optionally
-	// from the existing end date, if renewing early
+	// calculate membership end date based on membership length,
+	// optionally from the existing end date, if renewing early
 	$end_date = '';
 
-	if ( $plan->get_access_length_amount() ) {
+	if ( $membership_plan->get_access_length_amount() ) {
 
-		// Early renewals add to the existing membership length, normal
-		// cases calculate membership length from now (UTC)
-		$now = 'renew' == $action
-					 ? get_post_meta( $user_membership_id, '_end_date', true )
-					 : current_time( 'mysql', true );
+		// early renewals add to the existing membership length,
+		// normal cases calculate membership length from "now" (UTC)
+		if ( 'renew' === $action ) {
+			$now = get_post_meta( $user_membership_id, '_end_date', true );
+		} else {
+			$now = current_time( 'mysql', true );
+		}
 
-		$end_date = $plan->get_expiration_date( $now );
+		$end_date = $membership_plan->get_expiration_date( $now, $args );
 	}
 
 	// Save/update end date
@@ -216,15 +236,37 @@ function wc_memberships_create_user_membership( $args = array(), $action = 'crea
 	 * but won't fire when memberships are manually created from admin
 	 *
 	 * @since 1.3.0
-	 *
-	 * @param WC_Memberships_Membership_Plan $membership_plan The plan that user was granted access to
+	 * @param \WC_Memberships_Membership_Plan $membership_plan The plan that user was granted access to
 	 * @param array $args
 	 */
-	do_action( 'wc_memberships_user_membership_created', $plan, array(
+	do_action( 'wc_memberships_user_membership_created', $membership_plan, array(
 		'user_id'            => $args['user_id'],
 		'user_membership_id' => $user_membership->get_id(),
 		'is_update'          => $updating,
 	) );
 
 	return $user_membership;
+}
+
+
+/**
+ * Get Users Memberships from a Subscription
+ *
+ * Returns empty array if no User Memberships are found or Subscriptions is inactive
+ *
+ * @since 1.5.4
+ * @param int|\WP_Post $subscription A Subscription post object or id
+ * @return \WC_Memberships_User_Membership[] Array of User Membership objects or empty array if none found
+ */
+function wc_memberships_get_memberships_from_subscription( $subscription ) {
+
+	$integrations = wc_memberships()->get_integrations_instance();
+
+	if ( ! $integrations || true !== $integrations->is_subscriptions_active() ) {
+		return array();
+	}
+
+	$subscriptions = $integrations->get_subscriptions_instance();
+
+	return $subscriptions ? $subscriptions->get_memberships_from_subscription( $subscription ) : array();
 }

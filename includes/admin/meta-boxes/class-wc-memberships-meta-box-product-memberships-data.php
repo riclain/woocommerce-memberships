@@ -23,7 +23,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Memberships Data Meta Box for products
@@ -138,7 +138,7 @@ class WC_Memberships_Meta_Box_Product_Memberships_Data extends WC_Memberships_Me
 		);
 
 		// Get applied restriction rules
-		$product_restriction_rules = wc_memberships()->rules->get_rules( array(
+		$product_restriction_rules = wc_memberships()->get_rules_instance()->get_rules( array(
 			'rule_type'         => 'product_restriction',
 			'object_id'         => $post->ID,
 			'content_type'      => 'post_type',
@@ -159,7 +159,7 @@ class WC_Memberships_Meta_Box_Product_Memberships_Data extends WC_Memberships_Me
 		) );
 
 		// Get applied restriction rules
-		$purchasing_discount_rules = wc_memberships()->rules->get_rules( array(
+		$purchasing_discount_rules = wc_memberships()->get_rules_instance()->get_rules( array(
 			'rule_type'         => 'purchasing_discount',
 			'object_id'         => $post->ID,
 			'content_type'      => 'post_type',
@@ -373,7 +373,7 @@ class WC_Memberships_Meta_Box_Product_Memberships_Data extends WC_Memberships_Me
 											}
 										}
 
-										echo esc_attr( wc_memberships()->wp_json_encode( $json_ids ) ); ?>"
+										echo esc_attr( wc_memberships_json_encode( $json_ids ) ); ?>"
 							       value="<?php echo esc_attr( implode( ',', array_keys( $json_ids ) ) ); ?>" />
 
 							<?php echo SV_WC_Plugin_Compatibility::wc_help_tip( __( 'Select which membership plans does purchasing this product grant access tp.', 'woocommerce-memberships' ) ); ?>
@@ -437,17 +437,19 @@ class WC_Memberships_Meta_Box_Product_Memberships_Data extends WC_Memberships_Me
 	 *
 	 * @since 1.0.0
 	 * @param int $post_id
-	 * @param WP_Post $post
+	 * @param \WP_Post $post
 	 */
 	public function update_data( $post_id, WP_Post $post ) {
 
-		// Update restriction & discount rules
-		wc_memberships()->admin->update_rules( $post_id, array( 'product_restriction', 'purchasing_discount' ), 'post' );
-		wc_memberships()->admin->update_custom_message( $post_id, array( 'product_viewing_restricted', 'product_purchasing_restricted' ) );
+		$admin = wc_memberships()->get_admin_instance();
+
+		// update restriction & discount rules
+		$admin->update_rules( $post_id, array( 'product_restriction', 'purchasing_discount' ), 'post' );
+		$admin->update_custom_message( $post_id, array( 'product_viewing_restricted', 'product_purchasing_restricted' ) );
 
 		update_post_meta( $post_id, '_wc_memberships_force_public', isset( $_POST[ '_wc_memberships_force_public' ] ) ? 'yes' : 'no' );
 
-		// Update membership plans that this product grants access to
+		// update membership plans that this product grants access to
 		$plan_ids        = $this->get_product_membership_plans( $post->ID, 'id' );
 		$posted_plan_ids = isset( $_POST['_wc_memberships_membership_plan_ids'] ) ? $_POST['_wc_memberships_membership_plan_ids'] : array();
 
@@ -458,13 +460,13 @@ class WC_Memberships_Meta_Box_Product_Memberships_Data extends WC_Memberships_Me
 		sort( $plan_ids );
 		sort( $posted_plan_ids );
 
-		// Only continue processing if there are changes
+		// only continue processing if there are changes
 		if ( $plan_ids != $posted_plan_ids ) {
 
 			$removed = array_diff( $plan_ids, $posted_plan_ids );
 			$new     = array_diff( $posted_plan_ids, $plan_ids );
 
-			// Handle removed plans
+			// handle removed plans
 			if ( ! empty( $removed ) ) {
 
 				foreach ( $removed as $plan_id ) {
@@ -478,7 +480,7 @@ class WC_Memberships_Meta_Box_Product_Memberships_Data extends WC_Memberships_Me
 				}
 			}
 
-			// Handle new plans
+			// handle new plans
 			if ( ! empty( $new ) ) {
 
 				foreach ( $new as $plan_id ) {

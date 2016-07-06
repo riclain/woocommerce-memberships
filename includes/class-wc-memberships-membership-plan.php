@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+defined( 'ABSPATH' ) or exit;
 
 /**
  * Membership Plan class
@@ -187,28 +187,45 @@ class WC_Memberships_Membership_Plan {
 	 *
 	 * @since 1.3.8
 	 * @param int|string $start Optional: a date string or timestamp (default current time)
+	 * @param array $args Optional: additional arguments
 	 * @return string Date in Y-m-d H:i:s format or empty for unlimited plans
 	 */
-	public function get_expiration_date( $start = '' ) {
+	public function get_expiration_date( $start = '', $args = array() ) {
 
-		// Unlimited length plans have no end date
-		if ( ! $this->get_access_length() ) {
-			return '';
+		$end      = '';
+		$end_date = '';
+
+		$args = wp_parse_args( $args, array(
+			'plan_id' => $this->get_id(),
+		) );
+
+		// Unlimited length plans have no end date, calculate only for those who have
+		if ( $access_length = $this->get_access_length() ) {
+
+			if ( empty( $start ) ) {
+				$start = current_time( 'timestamp', true );
+			} elseif ( is_string( $start ) ) {
+				$start = strtotime( $start );
+			}
+
+			if ( false !== strpos( $this->get_access_length_period(), 'month' ) ) {
+				$end = wc_memberships_add_months_to_timestamp( $start, $this->get_access_length_amount() );
+			} else {
+				$end = strtotime( '+ ' . $access_length, $start );
+			}
+
+			$end_date = date( 'Y-m-d H:i:s', $end );
 		}
 
-		if ( empty( $start ) ) {
-			$start = current_time( 'timestamp', true );
-		} elseif ( is_string( $start ) ) {
-			$start = strtotime( $start );
-		}
-
-		if ( strpos( $this->get_access_length_period(), 'month' ) !== false ) {
-			$end = wc_memberships()->add_months( $start, $this->get_access_length_amount() );
-		} else {
-			$end = strtotime( '+ ' . $this->get_access_length(), $start );
-		}
-
-		return date( 'Y-m-d H:i:s', $end );
+		/**
+		 * Plan expiration date
+		 *
+		 * @since 1.5.3
+		 * @param string $expiration_date Date in Y-m-d H:i:s format, empty string for unlimited plans
+		 * @param int|string $expiration_timestamp Timestamp, empty string for unlimited plans
+		 * @param array $args Additional arguments
+		 */
+		return apply_filters( 'wc_memberships_plan_expiration_date', $end_date, $end, $args );
 	}
 
 
@@ -372,9 +389,10 @@ class WC_Memberships_Membership_Plan {
 		if ( ! empty( $post_ids ) ) {
 
 			$posts = new WP_Query( array(
-				'post_type' => 'any',
-				'post__in'  => array_unique( $post_ids ),
-				'paged'     => $paged,
+				'post_type'           => 'any',
+				'post__in'            => array_unique( $post_ids ),
+				'ignore_sticky_posts' => true,
+				'paged'               => $paged,
 			) );
 
 			return $posts;
@@ -433,7 +451,7 @@ class WC_Memberships_Membership_Plan {
 
 		// get all available discounts for this product
 		$product_id    = is_object( $product ) ? $product->id : $product;
-		$all_discounts = wc_memberships()->rules->get_product_purchasing_discount_rules( $product_id );
+		$all_discounts = wc_memberships()->get_rules_instance()->get_product_purchasing_discount_rules( $product_id );
 
 		foreach ( $all_discounts as $discount ) {
 			// only get discounts that match the current membership plan & are active
@@ -465,18 +483,20 @@ class WC_Memberships_Membership_Plan {
 	 * Get related user memberships
 	 *
 	 * @since 1.0.0
-	 * @return array Array of user memberships
+	 * @param array $args Optional arguments to pass to `get_posts()` with defaults
+	 * @return \WC_Memberships_User_Membership[] Array of user memberships
 	 */
-	public function get_memberships() {
+	public function get_memberships( $args = array() ) {
 
-		$args = array(
+		wp_parse_args( $args, array(
 			'post_type'   => 'wc_user_membership',
 			'post_status' => 'any',
 			'post_parent' => $this->get_id(),
 			'nopaging'    => true,
-		);
+		) );
 
 		$posts = get_posts( $args );
+
 		$user_memberships = array();
 
 		if ( ! empty( $posts ) ) {
@@ -494,10 +514,32 @@ class WC_Memberships_Membership_Plan {
 	 * Get number of related memberships
 	 *
 	 * @since 1.0.0
-	 * @return int Number of related user memberships
+	 * @param string|array $status Members statuses to count - optional, defaults to 'any'
+	 * @return int
 	 */
-	public function get_memberships_count() {
-		return count( $this->get_memberships() );
+	public function get_memberships_count( $status = 'any' ) {
+
+		if ( 'any' === $status ) {
+			$status = array_keys( wc_memberships_get_user_membership_statuses() );
+		}
+
+		$statuses    = (array) $status;
+		$post_status = array();
+
+		if ( ! empty( $statuses ) ) {
+
+			// enforces a 'wcm-' prefix if missing
+			foreach ( $statuses as $status_key ) {
+				$post_status[] = SV_WC_Helper::str_starts_with( $status_key, 'wcm-' ) ? $status_key : 'wcm-' . $status_key;
+			}
+		}
+
+		$members = $this->get_memberships( array(
+			'post_status' => $post_status,
+			'fields'      => 'ids',
+		) );
+
+		return count( $members );
 	}
 
 
@@ -505,21 +547,10 @@ class WC_Memberships_Membership_Plan {
 	 * Check if the plan has any active user memberships
 	 *
 	 * @since 1.0.0
-	 * @return bool True, if has active memberships, false otherwise
+	 * @return bool
 	 */
 	public function has_active_memberships() {
-
-		$has_active = false;
-
-		foreach ( $this->get_memberships() as $user_membership ) {
-
-			if ( ! $user_membership->is_cancelled() && ! $user_membership->is_expired() && $user_membership->is_in_active_period() ) {
-				$has_active = true;
-				break;
-			}
-		}
-
-		return $has_active;
+		return $this->get_memberships_count( 'active' ) > 0;
 	}
 
 
@@ -579,7 +610,7 @@ class WC_Memberships_Membership_Plan {
 			if ( ! empty( $order_ids ) && in_array( $order_id, $order_ids ) ) {
 				// However, there is an exception when the intended behaviour is to extend membership length
 				// when the option is enabled and the purchase order includes multiple access granting products
-				if ( wc_memberships()->allow_cumulative_granting_access_orders() ) {
+				if ( wc_memberships_cumulative_granting_access_orders_allowed() ) {
 
 					if ( isset( $access_granted[ $user_membership_id ] ) && $access_granted[ $user_membership_id ]['granting_order_status'] !== $order_status ) {
 
